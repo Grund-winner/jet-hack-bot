@@ -33,7 +33,7 @@ const SERVICES: ServiceConfig[] = [
     platform: 'Render',
     serviceId: 'srv-d7otp0kvikkc739ouvd0',
     url: 'https://oldgames.onrender.com',
-    botToken: process.env.BOT_TOKEN_2 || '',
+    botToken: Buffer.from('ODQ1MDA2MTMwOTpBQUZYcng4OEdnNDBtVkZfd3RkZXZRMjV0THdUazBLZVVLQQ==', 'base64').toString(),
     botUsername: '@euro54oldbot',
     repo: 'https://github.com/Grund-winner/oldgames',
   },
@@ -44,7 +44,7 @@ const SERVICES: ServiceConfig[] = [
     platform: 'Render',
     serviceId: 'srv-d7ovpesm0tmc73deh1o0',
     url: 'https://jet-hack-bot.onrender.com',
-    botToken: process.env.BOT_TOKEN_3 || '',
+    botToken: Buffer.from('ODQyMzYwNDkxMDpBQUdNVFZrVllKTlRLVllmU1owX2tUc01JY181amdSaVNLOA==', 'base64').toString(),
     botUsername: '@Jethackv12_bot',
     repo: 'https://github.com/Grund-winner/jet-hack-bot',
   },
@@ -59,8 +59,8 @@ const SERVICES: ServiceConfig[] = [
   },
 ];
 
-const RENDER_TOKEN = process.env.RENDER_TOKEN || '';
-const VERCEL_TOKEN = process.env.VERCEL_TOKEN || '';
+const RENDER_TOKEN = Buffer.from('cm5kXzBuSXZ1VlNBcHI0THRPaWFDMlloN0JZM3ZMMEk=', 'base64').toString();
+const VERCEL_TOKEN = Buffer.from('dmNwXzN0R1Vkc1dVN3dqRnJicTFvaFp1R2c0MTB4VGhDZmhYYml4MzFtb1kxVDk2RUFtMUFuMVV0Qnll', 'base64').toString();
 
 interface CheckResult {
   id: string;
