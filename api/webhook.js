@@ -11,10 +11,9 @@ const BASE_URL = process.env.BASE_URL || '';
 const MIN_DEPOSIT = parseFloat(process.env.MIN_DEPOSIT) || 8.5;
 const LINK_SECRET = process.env.ADMIN_PASSWORD || 'euro54secret';
 
-// ─── Vidéos canal Telegram ───
-const VIDEO_CHANNEL = '@barrronnnn';
-const VIDEO_MENU_MSG_ID = parseInt(process.env.VIDEO_MENU_MSG_ID) || 4;
-const VIDEO_SIGNAL_MSG_ID = parseInt(process.env.VIDEO_SIGNAL_MSG_ID) || 7;
+// ─── Vidéos hébergées sur le serveur ───
+const VIDEO_MENU = `${BASE_URL}/videos/menu.MP4`;
+const VIDEO_SIGNAL = `${BASE_URL}/videos/signaux.MP4`;
 
 const V = Date.now();
 const IMG = {
@@ -79,23 +78,20 @@ async function sendPhoto(chatId, userId, img, text, btns, prevMsgId) {
     return fb;
 }
 
-// ─── Envoyer une vidéo copiée depuis le canal Telegram (avec caption + boutons) ───
-async function sendVideoFromChannel(chatId, userId, channelMsgId, caption, btns, prevMsgId) {
+// ─── Envoyer une vidéo hébergée (avec caption + boutons) ───
+async function sendVideo(chatId, userId, videoUrl, caption, btns, prevMsgId) {
     if (prevMsgId) await deleteMsg(chatId, prevMsgId);
-    const res = await tgAPI('copyMessage', {
-        from_chat_id: VIDEO_CHANNEL,
-        message_id: channelMsgId,
-        chat_id: chatId,
-        caption: caption,
-        parse_mode: 'HTML',
+    const res = await tgAPI('sendVideo', {
+        chat_id: chatId, video: videoUrl,
+        caption: caption, parse_mode: 'HTML',
         reply_markup: btns ? { inline_keyboard: btns } : undefined
     });
     if (res.ok) {
         try { await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [res.result.message_id, userId]); } catch (e) {}
         return res;
     }
-    // Fallback: envoyer en texte si la vidéo ne peut pas être copiée
-    console.error('copyMessage failed, falling back to sendMessage');
+    // Fallback: envoyer en texte si la vidéo échoue
+    console.error('sendVideo failed, falling back to sendMessage:', JSON.stringify(res));
     const fb = await tgAPI('sendMessage', {
         chat_id: chatId, text: caption,
         parse_mode: 'HTML', reply_markup: btns ? { inline_keyboard: btns } : undefined
@@ -257,7 +253,7 @@ async function renderLuckyJetMenu(chatId, userId, prevMsgId) {
     txt += `➤ Tranche : ${rangeLabel}X\n`;
     txt += `➤ ID : ${userId}`;
 
-    await sendVideoFromChannel(chatId, userId, VIDEO_MENU_MSG_ID, txt, signalMenuBtns(sigCount), prevMsgId);
+    await sendVideo(chatId, userId, VIDEO_MENU, txt, signalMenuBtns(sigCount), prevMsgId);
 }
 
 // ─── Text Handler ───
@@ -491,9 +487,9 @@ async function handleUpdate(update) {
                     [{ text: "MENU PRINCIPAL ➡️", callback_data: 'nav_home' }]
                 ];
 
-                // Envoyer signal avec vidéo du canal (sendVideoFromChannel gère la suppression du msg précédent)
+                // Envoyer signal avec vidéo hébergée
                 const user2 = await getUser(userId);
-                await sendVideoFromChannel(chatId, userId, VIDEO_SIGNAL_MSG_ID, signalMsg, kb, user2?.last_message_id);
+                await sendVideo(chatId, userId, VIDEO_SIGNAL, signalMsg, kb, user2?.last_message_id);
                 return;
             }
 
