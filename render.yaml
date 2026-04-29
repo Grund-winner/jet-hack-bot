@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: jet-hack-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: REG_LINK
+        sync: false
+      - key: BASE_URL
+        fromService:
+          name: jet-hack-bot
+          type: web
+          property: hostport

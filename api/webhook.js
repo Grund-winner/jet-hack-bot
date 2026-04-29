@@ -1,14 +1,13 @@
-// ═══════════════════════════════════════════════════════
-// EURO54 - Webhook Telegram Bot
+// ═══════════════════════════════════════════════════════════════
+// JET HACK BOT - Webhook Telegram Bot
+// Menu Lucky Jet + Signaux gérés en base de données
 // Route : POST /api/webhook
-// ═══════════════════════════════════════════════════════
-const crypto = require('crypto');
+// ═══════════════════════════════════════════════════════════════
 const { query } = require('../lib/db');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const REG_LINK = process.env.REG_LINK || '';
-// Utilise VERCEL_URL (auto-détection du domaine Vercel) sinon BASE_URL, sinon fallback
-const BASE_URL = process.env.BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+const BASE_URL = process.env.BASE_URL || '';
 const MIN_DEPOSIT = parseFloat(process.env.MIN_DEPOSIT) || 8.5;
 const LINK_SECRET = process.env.ADMIN_PASSWORD || 'euro54secret';
 
@@ -20,78 +19,22 @@ const IMG = {
     instructions: `${BASE_URL}/images/instructions.png?v=${V}`
 };
 
+// ─── Messages ───
 const M = {
-    welcome: `<b>Bienvenue sur le meilleur bot de prédictions 1win</b>
-
-Pour accéder à l'ensemble des prédictions et en profiter pleinement :`
-
-    + `\n\n• Créez un nouveau compte 1win avec le code promo <b>EURO54</b>`
-
-    + `\n\n• Après l'inscription, effectuez un rechargement montant minimum de <b>8.5$ (5000 FCFA)</b> et vous aurez accès à toute les prédictions sur tout les jeux`,
-
-    menu: `
-
-Sélectionnez une option ci-dessous :`,
-
-    instructions: `<b>Comment ça marche ?</b>
-
-Nos membres réalisent entre <b>15% et 25%</b> de profit journalier !
-
-<b>1.</b> <b>Inscrivez-vous</b> sur 1Win en utilisant le code promo <b>EURO54</b>
-<b>2.</b> <b>Rechargez</b> minimum <b>8.5$ (5000 FCFA)</b> sur votre compte
-<b>3.</b> <b>Accédez</b> aux prédictions en direct !`,
-
-    register: `<b>Étape 1 : Inscription</b>
-
-Inscrivez-vous sur 1Win en utilisant le code promo <b>EURO54</b>.
-
-Une fois inscrit, revenez ici et cliquez sur <b>ACCÉDER AUX PRÉDICTIONS</b>.`,
-
-    deposit: `<b>Étape 2 : Rechargement</b>
-
-Votre inscription est <b>confirmée</b>.
-
-Effectuez un <b>dépôt minimum de 8.5$ (5000 FCFA)</b> sur votre compte 1Win.
-
-Revenez ensuite cliquer sur <b>ACCÉDER AUX PRÉDICTIONS</b>.`,
-
-    deposit_small: `<b>Dépôt insuffisant</b>
-
-Un dépôt de <b>{amount}$</b> a été détecté.
-
-Le montant minimum requis est de <b>8.5$ (5000 FCFA)</b>.
-
-Veuillez effectuer un dépôt complémentaire.`,
-
-    not_registered: `<b>Inscription non détectée</b>
-
-Assurez-vous de vous être inscrit en utilisant le code promo <b>EURO54</b>.
-
-Patientez quelques minutes puis réessayez.`,
-
-    access_granted: `<b>Accès VIP accordé !</b>
-
-Votre inscription et votre dépôt ont été confirmés.
-
-Cliquez ci-dessous pour accéder aux prédictions :`,
-
-    already_registered: `<b>Déjà inscrit(e)</b>
-
-Envoyez l'ID de votre compte 1Win pour la vérification.
-
-Assurez-vous d'être inscrit avec le code promo <b>EURO54</b> et que vous avez effectué un rechargement minimum de <b>8.5$ (5000 FCFA)</b>.`,
-
-    already_registered_success: `<b>Compte lié avec succès !</b>
-
-Votre ID 1Win a été associé à votre compte Telegram.`,
-
-    already_registered_already: `Cet ID 1Win est déjà lié à un autre compte Telegram.`,
-
-    already_registered_notfound: `<b>ID non trouvé</b>
-
-Assurez-vous d'être inscrit(e) avec le code promo <b>EURO54</b> via notre lien d'inscription.`
+    welcome: `<b>Bienvenue sur JET HACK 🚀</b>\n\nLe bot de signaux Lucky Jet le plus performant.\n\nPour accéder aux signaux :`,
+    menu: `\n\n<b>Conditions :</b>\n• Inscrivez-vous avec le code promo <b>EURO54</b>\n• Rechargez minimum <b>8.5$ (5000 FCFA)</b>\n• Recevez <b>15 signaux gratuits</b> !\n\n<b>🎁 Bonus :</b> Chaque 34$ cumulés en dépôts = 20 signaux gratuits supplémentaires.`,
+    instructions: `<b>Comment ça marche ?</b>\n\n<b>1.</b> <b>Inscrivez-vous</b> sur 1Win avec le code promo <b>EURO54</b>\n<b>2.</b> <b>Rechargez</b> minimum <b>8.5$ (5000 FCFA)</b>\n<b>3.</b> Recevez vos <b>15 signaux gratuits</b>\n<b>4.</b> Générez des signaux et jouez !\n\n<b>💰 Récompense automatique :</b> À chaque 34$ cumulés en dépôts, vous recevez 20 signaux gratuits !`,
+    register: `<b>Étape 1 : Inscription</b>\n\nInscrivez-vous sur 1Win avec le code promo <b>EURO54</b>.\n\nRevenez ici après l'inscription.`,
+    deposit: `<b>Étape 2 : Rechargement</b>\n\nVotre inscription est <b>confirmée</b>.\n\nEffectuez un dépôt minimum de <b>8.5$ (5000 FCFA)</b> pour recevoir vos 15 signaux gratuits.`,
+    deposit_small: `<b>Dépôt insuffisant</b>\n\nDépôt détecté : <b>{amount}$</b>\nMontant requis : <b>8.5$ (5000 FCFA)</b>.\n\nVeuillez effectuer un dépôt complémentaire.`,
+    not_registered: `<b>Inscription non détectée</b>\n\nAssurez-vous d'être inscrit avec le code promo <b>EURO54</b>.`,
+    already_registered: `<b>Déjà inscrit(e)</b>\n\nEnvoyez l'ID de votre compte 1Win pour vérification.`,
+    already_registered_success: `<b>Compte lié avec succès !</b>\n\nVotre ID 1Win a été associé à votre compte Telegram.`,
+    already_registered_notfound: `<b>ID non trouvé</b>\n\nAssurez-vous d'être inscrit avec le code promo <b>EURO54</b>.`,
+    access_granted: `<b>Accès aux Signaux accordé !</b> 🎉\n\nVotre dépôt a été confirmé.\nVous avez reçu vos <b>15 signaux gratuits</b> !\n\nCliquez ci-dessous pour générer vos signaux :`
 };
 
+// ─── Telegram API ───
 async function tgAPI(method, data) {
     try {
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -112,9 +55,7 @@ async function deleteMsg(chatId, msgId) {
 }
 
 async function sendPhoto(chatId, userId, img, text, btns, prevMsgId) {
-    if (prevMsgId) {
-        await deleteMsg(chatId, prevMsgId);
-    }
+    if (prevMsgId) await deleteMsg(chatId, prevMsgId);
     const res = await tgAPI('sendPhoto', {
         chat_id: chatId, photo: img, caption: text,
         parse_mode: 'HTML', reply_markup: { inline_keyboard: btns }
@@ -123,8 +64,6 @@ async function sendPhoto(chatId, userId, img, text, btns, prevMsgId) {
         try { await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [res.result.message_id, userId]); } catch (e) {}
         return res;
     }
-    // Fallback : si sendPhoto échoue (image introuvable, etc.), envoyer en texte
-    console.error('[sendPhoto] échec, fallback sendMessage:', JSON.stringify(res).substring(0, 200));
     const fb = await tgAPI('sendMessage', {
         chat_id: chatId, text: text,
         parse_mode: 'HTML', reply_markup: { inline_keyboard: btns }
@@ -140,31 +79,68 @@ async function getUser(tid) {
     return r[0] || null;
 }
 
-// Vérifie si le dépôt total est >= MIN_DEPOSIT
 function hasValidDeposit(user) {
     return (parseFloat(user.deposit_amount) || 0) >= MIN_DEPOSIT;
 }
 
 async function createUser(tid, username, fn, ln) {
     const r = await query(
-        'INSERT INTO users (telegram_id, username, first_name, last_name, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+        'INSERT INTO users (telegram_id, username, first_name, last_name, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) ON CONFLICT (telegram_id) DO UPDATE SET updated_at = NOW() RETURNING *',
         [tid, username, fn, ln]
     );
     return r[0] || null;
 }
 
-// Token HMAC (zéro DB) : base64(telegramId:expiry:hmac)
-function generateToken(telegramId) {
-    const exp = Date.now() + 10 * 60 * 1000;
-    const payload = `${telegramId}:${exp}`;
-    const sig = crypto.createHmac('sha256', LINK_SECRET).update(payload).digest('hex').substring(0, 12);
-    return Buffer.from(`${payload}:${sig}`).toString('base64url');
+function regLink(tid) { return `${REG_LINK}&sub1=${tid}`; }
+
+// ─── Signaux DB ───
+async function ensureSignalTables() {
+    await query(`CREATE TABLE IF NOT EXISTS user_signals (
+        telegram_id BIGINT PRIMARY KEY,
+        signals INTEGER DEFAULT 0,
+        pref_range TEXT DEFAULT '10-20',
+        last_signal_time TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    await query(`CREATE TABLE IF NOT EXISTS deposit_milestones (
+        telegram_id BIGINT,
+        milestone_level INTEGER,
+        fcfa_threshold NUMERIC,
+        rewarded BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (telegram_id, milestone_level)
+    )`);
 }
 
-function regLink(tid) { return `${REG_LINK}&sub1=${tid}`; }
-function depLink(tid) { return `${REG_LINK}&sub1=${tid}`; }
+async function getSignals(tid) {
+    const r = await query('SELECT signals, pref_range FROM user_signals WHERE telegram_id = $1', [tid]);
+    if (r.length === 0) return { signals: 0, range: null };
+    return { signals: parseInt(r[0].signals) || 0, range: r[0].pref_range };
+}
 
-// ─── Sessions (pour la vérification ID 1Win) ───
+async function addSignals(tid, amount) {
+    await query('INSERT INTO user_signals (telegram_id, signals, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (telegram_id) DO UPDATE SET signals = user_signals.signals + $2, updated_at = NOW()', [tid, amount]);
+}
+
+async function removeSignals(tid, amount) {
+    await query('UPDATE user_signals SET signals = GREATEST(0, signals - $1), updated_at = NOW() WHERE telegram_id = $2', [amount, tid]);
+}
+
+async function setPrefRange(tid, range) {
+    await query('INSERT INTO user_signals (telegram_id, pref_range, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (telegram_id) DO UPDATE SET pref_range = $2, updated_at = NOW()', [tid, range]);
+}
+
+async function getLastSignalTime(tid) {
+    const r = await query('SELECT last_signal_time FROM user_signals WHERE telegram_id = $1', [tid]);
+    return r.length > 0 ? r[0].last_signal_time : null;
+}
+
+async function setLastSignalTime(tid) {
+    await query('UPDATE user_signals SET last_signal_time = NOW(), updated_at = NOW() WHERE telegram_id = $1', [tid]);
+}
+
+// ─── Sessions ───
 async function ensureSessionsTable() {
     await query(`CREATE TABLE IF NOT EXISTS bot_sessions (
         bot_type TEXT NOT NULL,
@@ -177,161 +153,198 @@ async function ensureSessionsTable() {
     )`);
 }
 async function setTempState(tid, action) {
-    await query(`INSERT INTO bot_sessions (bot_type, admin_id, action, step, temp_data, updated_at) VALUES ('main', $1, $2, 1, '{}', NOW()) ON CONFLICT (bot_type, admin_id) DO UPDATE SET action = $2, step = 1, temp_data = '{}', updated_at = NOW()`, [tid, action]);
+    await query(`INSERT INTO bot_sessions (bot_type, admin_id, action, step, temp_data, updated_at) VALUES ('jethack', $1, $2, 1, '{}', NOW()) ON CONFLICT (bot_type, admin_id) DO UPDATE SET action = $2, step = 1, temp_data = '{}', updated_at = NOW()`, [tid, action]);
 }
 async function getTempState(tid) {
-    const r = await query("SELECT * FROM bot_sessions WHERE bot_type = 'main' AND admin_id = $1", [tid]);
+    const r = await query("SELECT * FROM bot_sessions WHERE bot_type = 'jethack' AND admin_id = $1", [tid]);
     return r[0] || null;
 }
 async function clearTempState(tid) {
-    await query("DELETE FROM bot_sessions WHERE bot_type = 'main' AND admin_id = $1", [tid]);
+    await query("DELETE FROM bot_sessions WHERE bot_type = 'jethack' AND admin_id = $1", [tid]);
 }
 
+// ─── Signal Generator ───
+function generateSignal(range = null) {
+    let minCote = 10.0, maxCote = 20.0, duration = 1;
+
+    if (range === "10-20") { minCote = 10.0; maxCote = 20.0; duration = 1; }
+    else if (range === "20-50") { minCote = 20.0; maxCote = 50.0; duration = 1; }
+    else if (range === "50-100") { minCote = 50.0; maxCote = 100.0; duration = 2; }
+    else if (range === "100-200") { minCote = 100.0; maxCote = 200.0; duration = 3; }
+
+    let mult1 = (Math.random() * (maxCote - minCote) + minCote);
+    let mult2 = mult1 + 3 + (Math.random() * 5);
+    let assure = mult1 / 2;
+
+    let d = new Date();
+    let utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    let now = new Date(utc);
+
+    let startTime = new Date(now.getTime() + 120000);
+    let endTime = new Date(startTime.getTime() + (duration * 60000));
+
+    let hStart = ("0" + startTime.getHours()).slice(-2);
+    let mStart = ("0" + startTime.getMinutes()).slice(-2);
+    let hEnd = ("0" + endTime.getHours()).slice(-2);
+    let mEnd = ("0" + endTime.getMinutes()).slice(-2);
+
+    let txt = `SIGNAL JET HACK 🧨☠️\n\n`;
+    txt += `➤ Heure : ${hStart}:${mStart} - ${hEnd}:${mEnd}\n`;
+    txt += `➤ Cotes : ${mult1.toFixed(2)}X - ${mult2.toFixed(2)}X\n`;
+    txt += `➤ Assurance : ${assure.toFixed(2)}X`;
+
+    return txt;
+}
+
+// ─── Button Layouts ───
 const BTN_MENU = [
     [{ text: "S'inscrire sur 1Win", callback_data: 'register' }, { text: "Comment ça marche ?", callback_data: 'instructions' }],
     [{ text: "Déjà inscrit(e)", callback_data: 'already_registered' }],
-    [{ text: "ACCÉDER AUX PRÉDICTIONS", callback_data: 'predictions' }]
+    [{ text: "JOUER AUX SIGNAUX 🚀", callback_data: 'play_signals' }]
 ];
 const BTN_BACK = [[{ text: "Retour", callback_data: 'back' }]];
 
-// Génère les boutons avec Web App pour les utilisateurs VIP
-function vipButtons(userId) {
-    const token = generateToken(userId);
-    const webAppUrl = `${BASE_URL}/api/claim?token=${token}`;
+function signalMenuBtns(signalsCount) {
     return [
-        [{ text: "ACCÉDER AUX PRÉDICTIONS", web_app: { url: webAppUrl } }],
-        BTN_BACK[0]
+        [{ text: "Aide ✉️", url: "https://t.me/GOD_CASINO54" }, { text: "Infos ❗", callback_data: 'usr_infos' }],
+        [{ text: "Option ⚙️", callback_data: 'usr_options' }, { text: "MENU PRINCIPAL 🏠", callback_data: 'nav_home' }],
+        [{ text: `Signal suivant 🚀 (${signalsCount} restants)`, callback_data: 'req_signal' }]
     ];
 }
 
-// Supprime l'ancien message et envoie un nouveau avec le bouton Web App
-async function sendVIPMessage(chatId, userId, currentMsgId) {
-    if (currentMsgId) await deleteMsg(chatId, currentMsgId);
+// ─── Lucky Jet Menu ───
+async function renderLuckyJetMenu(chatId, userId, prevMsgId) {
+    const sigData = await getSignals(userId);
+    const sigCount = sigData.signals;
+    const range = sigData.range;
 
-    const res = await tgAPI('sendPhoto', {
-        chat_id: chatId,
-        photo: IMG.default,
-        caption: M.access_granted,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: vipButtons(userId) }
-    });
+    let rangeLabel = range || '10-20';
+    let txt = `---+++ ‼️ LUCKY JET ‼️ +++---\n\n`;
+    txt += `➤ Nom : ${userId}\n`;
+    txt += `➤ Signaux : ${sigCount}\n`;
+    txt += `➤ Tranche : ${rangeLabel}X\n`;
+    txt += `➤ ID : ${userId}`;
 
-    if (res.ok) {
-        try {
-            await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [res.result.message_id, userId]);
-        } catch (e) {}
-    } else {
-        // Fallback : si sendPhoto échoue, envoyer un message texte avec bouton web_app
-        console.error('[VIP] sendPhoto failed, trying sendMessage fallback:', JSON.stringify(res));
-        const fb = await tgAPI('sendMessage', {
-            chat_id: chatId,
-            text: M.access_granted,
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: vipButtons(userId) }
-        });
-        if (fb.ok) {
-            try { await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [fb.result.message_id, userId]); } catch (e) {}
-        }
-    }
+    await sendPhoto(chatId, userId, IMG.default, txt, signalMenuBtns(sigCount), prevMsgId);
 }
 
+// ─── Text Handler ───
 async function handleText(chatId, from, text) {
     try {
-    const session = await getTempState(from.id);
-    console.log('[handleText] user=' + from.id + ' session=' + JSON.stringify(session) + ' text=' + text);
-    if (session && session.action === 'already_registered') {
-        const winId = text.trim();
-        await clearTempState(from.id);
+        const session = await getTempState(from.id);
+        console.log('[handleText] user=' + from.id + ' session=' + JSON.stringify(session) + ' text=' + text);
 
-        // 1. Chercher un utilisateur existant avec cet ID 1Win
-        const found = await query('SELECT * FROM users WHERE one_win_user_id = $1', [winId]);
-        if (found.length === 0) {
-            const user = await getUser(from.id);
-            await sendPhoto(chatId, from.id, IMG.default, M.already_registered_notfound, [[{ text: "S'inscrire", url: regLink(from.id) }], BTN_BACK[0]], user?.last_message_id);
-            return;
-        }
+        if (session && session.action === 'already_registered') {
+            const winId = text.trim();
+            await clearTempState(from.id);
 
-        const targetUser = found[0]; // Ligne qui a l'ID 1Win
-
-        // 2. Si cet ID 1Win est déjà lié à un AUTRE compte Telegram
-        if (targetUser.telegram_id && String(targetUser.telegram_id) !== String(from.id)) {
-            const user = await getUser(from.id);
-            await sendPhoto(chatId, from.id, IMG.default, M.already_registered_already, BTN_BACK, user?.last_message_id);
-            return;
-        }
-
-        // 3. Fusionner : associer le compte Telegram à la ligne 1Win existante
-        const telegramUser = await getUser(from.id);
-
-        if (telegramUser && String(telegramUser.id) !== String(targetUser.id)) {
-            // Il existe une ligne Telegram séparée → fusionner
-            // D'ABORD supprimer l'ancienne ligne Telegram (sinon contrainte UNIQUE telegram_id)
-            await query('DELETE FROM users WHERE id = $1', [telegramUser.id]);
-            // PUIS copier les infos Telegram sur la ligne 1Win
-            await query(
-                `UPDATE users SET telegram_id = $1, username = COALESCE($2, username), first_name = COALESCE($3, first_name), last_name = COALESCE($4, last_name),
-                 is_registered = TRUE, updated_at = NOW() WHERE id = $5`,
-                [from.id, from.username, from.first_name, from.last_name, targetUser.id]
-            );
-        } else if (!telegramUser || String(telegramUser.id) === String(targetUser.id)) {
-            // Pas de ligne Telegram, ou c'est déjà la même ligne → juste mettre à jour
-            await query(
-                `UPDATE users SET telegram_id = $1, username = COALESCE($2, username), first_name = COALESCE($3, first_name), last_name = COALESCE($4, last_name),
-                 is_registered = TRUE, updated_at = NOW() WHERE id = $5`,
-                [from.id, from.username, from.first_name, from.last_name, targetUser.id]
-            );
-        }
-
-        // 4. Récupérer l'utilisateur fusionné
-        const user = await getUser(from.id);
-        if (!user) {
-            await tgAPI('sendMessage', { chat_id: chatId, text: 'Erreur interne. Réessayez.', parse_mode: 'HTML' });
-            return;
-        }
-
-        // 5. Répondre selon le statut
-        if (user.is_registered && hasValidDeposit(user)) {
-            await sendPhoto(chatId, from.id, IMG.default, M.already_registered_success, vipButtons(from.id), user.last_message_id);
-        } else if (user.is_registered) {
-            const dep = parseFloat(user.deposit_amount) || 0;
-            let extraMsg;
-            if (dep > 0 && dep < MIN_DEPOSIT) {
-                const remaining = (MIN_DEPOSIT - dep).toFixed(2);
-                const fcfa = Math.ceil(parseFloat(remaining) * 588.24);
-                extraMsg = M.already_registered_success + '\n\n' + M.deposit_small.replace('{amount}', dep) + '\n\nIl vous manque <b>' + remaining + '$ (environ ' + fcfa + ' FCFA)</b>.';
-            } else {
-                extraMsg = M.already_registered_success + '\n\n' + M.deposit;
+            const found = await query('SELECT * FROM users WHERE one_win_user_id = $1', [winId]);
+            if (found.length === 0) {
+                const user = await getUser(from.id);
+                await sendPhoto(chatId, from.id, IMG.default, M.already_registered_notfound, [[{ text: "S'inscrire", url: regLink(from.id) }], BTN_BACK[0]], user?.last_message_id);
+                return;
             }
-            await sendPhoto(chatId, from.id, IMG.deposit, extraMsg, [[{ text: "Effectuer un depot", url: depLink(from.id) }], BTN_BACK[0]], user.last_message_id);
-        } else {
-            await sendPhoto(chatId, from.id, IMG.register, M.already_registered_success + '\n\n' + M.register, [[{ text: "S'inscrire maintenant", url: regLink(from.id) }], BTN_BACK[0]], user.last_message_id);
+
+            const targetUser = found[0];
+
+            if (targetUser.telegram_id && String(targetUser.telegram_id) !== String(from.id)) {
+                const user = await getUser(from.id);
+                await sendPhoto(chatId, from.id, IMG.default, 'Cet ID 1Win est déjà lié à un autre compte Telegram.', BTN_BACK, user?.last_message_id);
+                return;
+            }
+
+            const telegramUser = await getUser(from.id);
+            if (telegramUser && String(telegramUser.id) !== String(targetUser.id)) {
+                await query('DELETE FROM users WHERE id = $1', [telegramUser.id]);
+                await query(
+                    `UPDATE users SET telegram_id = $1, username = COALESCE($2, username), first_name = COALESCE($3, first_name), last_name = COALESCE($4, last_name),
+                     is_registered = TRUE, updated_at = NOW() WHERE id = $5`,
+                    [from.id, from.username, from.first_name, from.last_name, targetUser.id]
+                );
+            } else if (!telegramUser || String(telegramUser.id) === String(targetUser.id)) {
+                await query(
+                    `UPDATE users SET telegram_id = $1, username = COALESCE($2, username), first_name = COALESCE($3, first_name), last_name = COALESCE($4, last_name),
+                     is_registered = TRUE, updated_at = NOW() WHERE id = $5`,
+                    [from.id, from.username, from.first_name, from.last_name, targetUser.id]
+                );
+            }
+
+            const user = await getUser(from.id);
+            if (!user) {
+                await tgAPI('sendMessage', { chat_id: chatId, text: 'Erreur interne.', parse_mode: 'HTML' });
+                return;
+            }
+
+            if (user.is_registered && hasValidDeposit(user)) {
+                // Check if signals already credited
+                const sigData = await getSignals(from.id);
+                if (sigData.signals === 0) {
+                    await addSignals(from.id, 15);
+                    await tgAPI('sendMessage', {
+                        chat_id: chatId,
+                        text: `🎉 <b>Félicitations !</b>\n\nVotre compte a été vérifié.\nVous avez reçu <b>15 signaux gratuits</b> !`,
+                        parse_mode: 'HTML'
+                    });
+                }
+                await renderLuckyJetMenu(chatId, from.id, user.last_message_id);
+            } else if (user.is_registered) {
+                const dep = parseFloat(user.deposit_amount) || 0;
+                let extraMsg;
+                if (dep > 0 && dep < MIN_DEPOSIT) {
+                    const remaining = (MIN_DEPOSIT - dep).toFixed(2);
+                    const fcfa = Math.ceil(parseFloat(remaining) * 588.24);
+                    extraMsg = M.already_registered_success + '\n\n' + M.deposit_small.replace('{amount}', dep) + '\n\nIl vous manque <b>' + remaining + '$ (environ ' + fcfa + ' FCFA)</b>.';
+                } else {
+                    extraMsg = M.already_registered_success + '\n\n' + M.deposit;
+                }
+                await sendPhoto(chatId, from.id, IMG.deposit, extraMsg, [[{ text: "Effectuer un depot", url: regLink(from.id) }], BTN_BACK[0]], user.last_message_id);
+            } else {
+                await sendPhoto(chatId, from.id, IMG.register, M.already_registered_success + '\n\n' + M.register, [[{ text: "S'inscrire maintenant", url: regLink(from.id) }], BTN_BACK[0]], user.last_message_id);
+            }
         }
-    }
-    } catch(err) {
+    } catch (err) {
         console.error('[handleText ERROR]', err);
         await tgAPI('sendMessage', { chat_id: chatId, text: 'Erreur, veuillez reessayer.', parse_mode: 'HTML' }).catch(function(){});
     }
 }
 
+// ─── Main Update Handler ───
 async function handleUpdate(update) {
     try {
         await ensureSessionsTable();
+        await ensureSignalTables();
+
+        // /start command
         if (update.message && update.message.text === '/start') {
             const chatId = update.message.chat.id;
             const from = update.message.from;
             let user = await getUser(from.id);
             if (!user) user = await createUser(from.id, from.username, from.first_name, from.last_name);
+
             if (user.is_registered && hasValidDeposit(user)) {
-                await sendVIPMessage(chatId, from.id, user.last_message_id);
+                // Auto-credit 15 signals if first access
+                const sigData = await getSignals(from.id);
+                if (sigData.signals === 0) {
+                    await addSignals(from.id, 15);
+                    await tgAPI('sendMessage', {
+                        chat_id: chatId,
+                        text: `🎉 <b>Bienvenue sur JET HACK !</b>\n\nVotre dépôt a été confirmé.\nVous avez reçu <b>15 signaux gratuits</b> !`,
+                        parse_mode: 'HTML'
+                    });
+                }
+                await renderLuckyJetMenu(chatId, from.id, user.last_message_id);
             } else {
                 await sendPhoto(chatId, from.id, IMG.default, M.welcome + '\n' + M.menu, BTN_MENU, user.last_message_id);
             }
             return;
         }
+
+        // Other text messages
         if (update.message && update.message.text && update.message.text !== '/start') {
             return await handleText(update.message.chat.id, update.message.from, update.message.text);
         }
 
+        // Callback queries
         if (update.callback_query) {
             const q = update.callback_query;
             const chatId = q.message.chat.id;
@@ -342,44 +355,126 @@ async function handleUpdate(update) {
             let user = await getUser(userId);
             if (!user) user = await createUser(userId, q.from.username, q.from.first_name, q.from.last_name);
 
-            // ─── ACCÉDER AUX PRÉDICTIONS (depuis le menu) ───
-            if (data === 'predictions') {
+            // ─── JOUER AUX SIGNAUX (accès au menu Lucky Jet) ───
+            if (data === 'play_signals') {
                 if (!user.is_registered) {
                     await tgAPI('answerCallbackQuery', { callback_query_id: q.id, text: "Inscrivez-vous d'abord.", show_alert: true });
                 } else if (!hasValidDeposit(user)) {
-                    // Dépôt insuffisant → message clair avec montant restant
                     const dep = parseFloat(user.deposit_amount) || 0;
                     let msg;
                     if (dep > 0 && dep < MIN_DEPOSIT) {
                         const remaining = (MIN_DEPOSIT - dep).toFixed(2);
                         const fcfa = Math.ceil(parseFloat(remaining) * 588.24);
-                        msg = '<b>Dépôt insuffisant</b>\n\n'
-                            + 'Votre dépôt total : <b>' + dep.toFixed(2) + '$</b>\n'
-                            + 'Montant requis : <b>' + MIN_DEPOSIT + '$ (5000 FCFA)</b>\n\n'
-                            + 'Il vous manque <b>' + remaining + '$ (environ ' + fcfa + ' FCFA)</b>.\n\n'
-                            + 'Veuillez compléter votre dépôt pour accéder aux prédictions.';
+                        msg = '<b>Dépôt insuffisant</b>\n\nVotre dépôt : <b>' + dep.toFixed(2) + '$</b>\nRequis : <b>8.5$ (5000 FCFA)</b>\n\nIl vous manque <b>' + remaining + '$ (environ ' + fcfa + ' FCFA)</b>.';
                     } else {
-                        msg = '<b>Dépôt requis</b>\n\n'
-                            + 'Aucun dépôt détecté sur votre compte.\n\n'
-                            + 'Effectuez un dépôt minimum de <b>8.5$ (5000 FCFA)</b> pour accéder aux prédictions.';
+                        msg = '<b>Dépôt requis</b>\n\nEffectuez un dépôt minimum de <b>8.5$ (5000 FCFA)</b>.';
                     }
                     await tgAPI('answerCallbackQuery', { callback_query_id: q.id });
-                    await sendPhoto(chatId, userId, IMG.deposit, msg, [[{ text: 'Effectuer un dépôt', url: depLink(userId) }], BTN_BACK[0]], msgId);
+                    await sendPhoto(chatId, userId, IMG.deposit, msg, [[{ text: 'Effectuer un dépôt', url: regLink(userId) }], BTN_BACK[0]], msgId);
                 } else {
                     await tgAPI('answerCallbackQuery', { callback_query_id: q.id });
-                    await sendVIPMessage(chatId, userId, msgId);
+                    // Credit 15 signals on first access
+                    const sigData = await getSignals(userId);
+                    if (sigData.signals === 0) {
+                        await addSignals(userId, 15);
+                        await tgAPI('sendMessage', {
+                            chat_id: chatId,
+                            text: `🎉 <b>Félicitations !</b>\n\nVotre accès est confirmé.\nVous avez reçu <b>15 signaux gratuits</b> !`,
+                            parse_mode: 'HTML'
+                        });
+                    }
+                    await renderLuckyJetMenu(chatId, userId, msgId);
                 }
                 return;
             }
 
-            // ─── go_predictions (ancien flux, garde pour compatibilité) ───
-            if (data === 'go_predictions') {
+            // ─── NAV_HOME (retour menu principal depuis Lucky Jet) ───
+            if (data === 'nav_home') {
                 await tgAPI('answerCallbackQuery', { callback_query_id: q.id });
-                if (!user.is_registered || !hasValidDeposit(user)) {
-                    await tgAPI('sendMessage', { chat_id: chatId, text: 'Accès non autorisé.', parse_mode: 'HTML' });
+                if (user.is_registered && hasValidDeposit(user)) {
+                    await renderLuckyJetMenu(chatId, userId, msgId);
+                } else {
+                    await sendPhoto(chatId, userId, IMG.default, M.welcome + '\n' + M.menu, BTN_MENU, msgId);
+                }
+                return;
+            }
+
+            // ─── USR_INFOS ───
+            if (data === 'usr_infos') {
+                await tgAPI('answerCallbackQuery', { callback_query_id: q.id, text: "Inscrivez-vous avec EURO54, rechargez 8.5$, recevez 15 signaux. Attente 120s entre les signaux. Chaque 34$ cumulés = 20 signaux bonus.", show_alert: true });
+                return;
+            }
+
+            // ─── USR_OPTIONS (sélection tranche de cotes) ───
+            if (data === 'usr_options') {
+                await tgAPI('answerCallbackQuery', { callback_query_id: q.id });
+                const sigData = await getSignals(userId);
+                const currentRange = sigData.range || '10-20';
+                let txt = "⚙️ <b>PARAMÈTRES DES COTES</b>\n\nSélectionnez la tranche de cotes :\n\nActuelle : <b>" + currentRange + "X</b>";
+                let kb = [
+                    [{ text: "10.00x - 20.00x", callback_data: "set_range_10-20" }, { text: "20.00x - 50.00x", callback_data: "set_range_20-50" }],
+                    [{ text: "50.00x - 100.00x", callback_data: "set_range_50-100" }, { text: "100.00x - 200.00x", callback_data: "set_range_100-200" }],
+                    BTN_BACK[0]
+                ];
+                await sendPhoto(chatId, userId, IMG.default, txt, kb, msgId);
+                return;
+            }
+
+            // ─── SET_RANGE ───
+            if (data.startsWith("set_range_")) {
+                let selectedRange = data.replace("set_range_", "");
+                await setPrefRange(userId, selectedRange);
+                await tgAPI('answerCallbackQuery', { callback_query_id: q.id, text: "✅ Tranche : " + selectedRange + "X", show_alert: true });
+                await renderLuckyJetMenu(chatId, userId, msgId);
+                return;
+            }
+
+            // ─── REQ_SIGNAL (demander un signal) ───
+            if (data === 'req_signal') {
+                const sigData = await getSignals(userId);
+                if (sigData.signals <= 0) {
+                    await tgAPI('answerCallbackQuery', { callback_query_id: q.id, text: "❌ Vous n'avez plus de signaux ! Contactez l'admin.", show_alert: true });
                     return;
                 }
-                await sendVIPMessage(chatId, userId, msgId);
+
+                const lastTime = await getLastSignalTime(userId);
+                const now = new Date();
+                if (lastTime) {
+                    const elapsed = (now - new Date(lastTime)) / 1000;
+                    if (elapsed < 120) {
+                        const wait = Math.ceil(120 - elapsed);
+                        await tgAPI('answerCallbackQuery', { callback_query_id: q.id, text: "⏳ Attendez " + wait + "s avant le prochain signal.", show_alert: true });
+                        return;
+                    }
+                }
+
+                // Consume 1 signal
+                await removeSignals(userId, 1);
+                await setLastSignalTime(userId);
+
+                // Delete old message
+                const user2 = await getUser(userId);
+                if (user2?.last_message_id) {
+                    await deleteMsg(chatId, user2.last_message_id);
+                }
+
+                const signalMsg = generateSignal(sigData.range);
+                const newSigData = await getSignals(userId);
+                let kb = [
+                    [{ text: `PROCHAIN TOUR ➡️ (${newSigData.signals} restants)`, callback_data: 'req_signal' }],
+                    [{ text: "MENU PRINCIPAL ➡️", callback_data: 'nav_home' }]
+                ];
+
+                const res = await tgAPI('sendMessage', {
+                    chat_id: chatId,
+                    text: signalMsg,
+                    parse_mode: 'HTML',
+                    reply_markup: { inline_keyboard: kb }
+                });
+
+                if (res.ok) {
+                    try { await query('UPDATE users SET last_message_id = $1 WHERE telegram_id = $2', [res.result.message_id, userId]); } catch (e) {}
+                }
                 return;
             }
 
@@ -410,7 +505,7 @@ async function handleUpdate(update) {
                 await tgAPI('answerCallbackQuery', { callback_query_id: q.id });
                 await clearTempState(userId);
                 if (user.is_registered && hasValidDeposit(user)) {
-                    await sendVIPMessage(chatId, userId, msgId);
+                    await renderLuckyJetMenu(chatId, userId, msgId);
                 } else {
                     await sendPhoto(chatId, userId, IMG.default, M.welcome + '\n' + M.menu, BTN_MENU, msgId);
                 }
@@ -425,16 +520,12 @@ async function handleUpdate(update) {
 }
 
 module.exports = async function handler(req, res) {
-    if (req.method === 'GET') return res.status(200).send('EURO54 Bot est en ligne !');
+    if (req.method === 'GET') return res.status(200).send('JET HACK Bot est en ligne !');
     if (req.method === 'POST') {
         try {
-            const text = req.body?.message?.text || 'no text';
-            const chatId = req.body?.message?.chat?.id || 'no chat';
             await handleUpdate(req.body);
             return res.status(200).send('OK');
-        }
-        catch (e) { console.error('Webhook error:', e); return res.status(500).send('Error'); }
+        } catch (e) { console.error('Webhook error:', e); return res.status(500).send('Error'); }
     }
     res.status(405).send('Method not allowed');
 };
-// deploy timestamp: 1777451536

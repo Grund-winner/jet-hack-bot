@@ -1,7 +1,7 @@
 {
-  "name": "euro54-oldgames",
+  "name": "jet-hack-bot",
   "version": "1.0.0",
-  "description": "EURO54 All Games Bot - Telegram Bot",
+  "description": "JET HACK Bot - Lucky Jet Signal Generator",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
