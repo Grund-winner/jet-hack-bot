@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: euro54-oldgames
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: MIN_DEPOSIT
+        value: "8.5"
+      - key: NODE_ENV
+        value: production
