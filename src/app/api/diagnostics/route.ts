@@ -33,7 +33,7 @@ const SERVICES: ServiceConfig[] = [
     platform: 'Render',
     serviceId: 'srv-d7otp0kvikkc739ouvd0',
     url: 'https://oldgames.onrender.com',
-    botToken: '',
+    botToken: process.env.BOT_TOKEN_2 || '',
     botUsername: '@euro54oldbot',
     repo: 'https://github.com/Grund-winner/oldgames',
   },
@@ -44,7 +44,7 @@ const SERVICES: ServiceConfig[] = [
     platform: 'Render',
     serviceId: 'srv-d7ovpesm0tmc73deh1o0',
     url: 'https://jet-hack-bot.onrender.com',
-    botToken: '',
+    botToken: process.env.BOT_TOKEN_3 || '',
     botUsername: '@Jethackv12_bot',
     repo: 'https://github.com/Grund-winner/jet-hack-bot',
   },
@@ -277,7 +277,7 @@ async function checkDatabase(): Promise<{ status: 'pass' | 'fail'; message: stri
   try {
     const start = Date.now();
     // Test database connectivity by checking the Neon endpoint via TCP
-    const host = 'ep-gentle-glade-anuz7xef.c-6.us-east-1.aws.neon.tech';
+    const host = process.env.DB_HOST || 'ep-gentle-glade-anuz7xef.c-6.us-east-1.aws.neon.tech';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     
