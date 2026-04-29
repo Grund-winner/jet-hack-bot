@@ -1,0 +1,18 @@
+{
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/access", "destination": "/access.html" },
+    { "source": "/predictions", "destination": "/predictions.html" }
+  ],
+  "functions": {
+    "api/webhook.js": {
+      "maxDuration": 30
+    },
+    "api/admin-actions.js": {
+      "maxDuration": 60
+    },
+    "api/postback-deposit.js": {
+      "maxDuration": 15
+    }
+  }
+}

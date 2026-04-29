@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>EURO54 - Accès</title>
+    <link rel="icon" href="/images/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="/images/logo.png">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        html,body{touch-action:manipulation;-ms-touch-action:manipulation;overscroll-behavior:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+        input,select,textarea,button{font-size:16px!important}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#EBF4FF 0%,#DBEAFE 30%,#E0E7FF 60%,#F0F9FF 100%);color:#1E293B;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+        .container{width:100%;max-width:420px}
+        .brand{text-align:center;margin-bottom:32px}
+        .brand h1{font-size:24px;font-weight:800;color:#0F172A;letter-spacing:1px}
+        .brand p{font-size:14px;color:#64748B;margin-top:4px}
+        .card{background:rgba(255,255,255,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:32px 28px;box-shadow:0 4px 24px rgba(0,0,0,.06);border:1px solid rgba(255,255,255,.7)}
+        .card-title{text-align:center;font-size:17px;font-weight:600;color:#0F172A;margin-bottom:6px}
+        .card-subtitle{text-align:center;font-size:13px;color:#94A3B8;margin-bottom:24px;line-height:1.5}
+        .input-group{margin-bottom:16px}
+        .input-group label{display:block;font-size:13px;font-weight:500;color:#475569;margin-bottom:8px;text-align:center}
+        .input-wrapper{position:relative;display:flex;align-items:center}
+        .input-wrapper .icon{position:absolute;left:14px;display:flex}
+        .input-wrapper input{width:100%;padding:14px 14px 14px 42px;border:1.5px solid #E2E8F0;border-radius:12px;background:#F8FAFC;font-size:16px;font-weight:500;color:#1E293B;outline:none;transition:all .2s;letter-spacing:.3px}
+        .input-wrapper input::placeholder{color:#CBD5E1;font-weight:400;letter-spacing:0}
+        .input-wrapper input:focus{border-color:#2563EB;background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+        .btn-primary{width:100%;padding:15px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:-.2px;margin-top:8px}
+        .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.35)}
+        .btn-primary:disabled{background:#94A3B8;cursor:not-allowed;transform:none;box-shadow:none}
+        .loader{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .msg{margin-top:16px;padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.5;display:none;font-weight:500}
+        .msg.error{display:block;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+        .msg.success{display:block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}
+        .divider{display:flex;align-items:center;gap:12px;margin:24px 0}
+        .divider::before,.divider::after{content:'';flex:1;height:1px;background:#E2E8F0}
+        .divider span{font-size:12px;color:#94A3B8;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .steps{background:rgba(255,255,255,.6);border-radius:14px;padding:20px;border:1px solid rgba(226,232,240,.6)}
+        .steps h3{font-size:14px;font-weight:600;color:#2563EB;margin-bottom:14px;text-align:center}
+        .step-item{display:flex;gap:10px;margin-bottom:10px}
+        .step-item:last-child{margin-bottom:0}
+        .step-num{flex-shrink:0;width:22px;height:22px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+        .step-text{font-size:13px;color:#475569;line-height:1.6;padding-top:1px}
+        .step-text strong{color:#1E293B}
+        .footer{text-align:center;margin-top:24px;font-size:12px;color:#94A3B8}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .card{animation:fadeUp .5s ease}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="brand">
+            <h1>EURO54</h1>
+            <p>Prédictions casino 1Win</p>
+        </div>
+        <div class="card">
+            <div class="card-title">Connexion</div>
+            <div class="card-subtitle">Entrez votre identifiant 1Win pour accéder aux prédictions.</div>
+            <div class="input-group">
+                <label>Identifiant 1Win</label>
+                <div class="input-wrapper">
+                    <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    <input type="text" id="winIdInput" placeholder="Ex : 123456789" autocomplete="off" inputmode="numeric">
+                </div>
+            </div>
+            <button class="btn-primary" id="submitBtn" onclick="verifyAccess()">
+                <span id="btnText">Accéder aux prédictions</span>
+                <div class="loader" id="loader"></div>
+            </button>
+            <div id="errorMsg" class="msg error"></div>
+            <div id="successMsg" class="msg success"></div>
+            <div class="divider"><span>Comment ça marche</span></div>
+            <div class="steps">
+                <h3>Procédure</h3>
+                <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div class="step-text">Inscrivez-vous sur <strong>1Win</strong> en utilisant le code promo <strong>EURO54</strong></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div class="step-text">Rechargez votre compte d'un minimum de <strong>8.5$ (5000 FCFA)</strong></div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div class="step-text">Copiez votre <strong>ID 1Win</strong> reçu lors de l'inscription et collez-le ici</div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">EURO54</div>
+    </div>
+    <script>
+        document.getElementById('winIdInput').addEventListener('input',function(){document.getElementById('errorMsg').style.display='none';document.getElementById('successMsg').style.display='none'});
+        document.getElementById('winIdInput').addEventListener('keypress',function(e){if(e.key==='Enter')verifyAccess()});
+        async function verifyAccess(){
+            var oneWinId=document.getElementById('winIdInput').value.trim();
+            if(!oneWinId)return;
+            var btn=document.getElementById('submitBtn'),loader=document.getElementById('loader'),btnText=document.getElementById('btnText'),errEl=document.getElementById('errorMsg'),sucEl=document.getElementById('successMsg');
+            btn.disabled=true;btnText.style.display='none';loader.style.display='block';errEl.style.display='none';sucEl.style.display='none';
+            try{
+                var res=await fetch('/api/verify-1win',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({one_win_id:oneWinId})});
+                var data=await res.json();
+                loader.style.display='none';btnText.style.display='';btn.disabled=false;
+                if(data.success){
+                    localStorage.setItem('euro54_win_id',oneWinId);
+                    sucEl.textContent='Accès accordé ! Redirection...';
+                    sucEl.style.display='block';
+                    setTimeout(function(){window.location.href='/predictions'},1200)
+                }else{
+                    errEl.textContent=data.message||'Identifiant non reconnu.';
+                    errEl.style.display='block'
+                }
+            }catch(e){
+                loader.style.display='none';btnText.style.display='';btn.disabled=false;
+                errEl.textContent='Erreur de connexion. Vérifiez votre connexion internet.';
+                errEl.style.display='block'
+            }
+        }
+    </script>
+</body>
+</html>

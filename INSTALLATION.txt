@@ -1,0 +1,187 @@
+# ═══════════════════════════════════════════════════════
+# EURO54 - BOUT COMPLET DU BOT FONCTIONNEL
+# ═══════════════════════════════════════════════════════
+#
+# Ce ZIP contient le code complet du bot actuellement fonctionnel.
+# Il est prêt à être déployé sur Vercel (neutre, sans token hardcodé).
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ÉTAPE 1 : CRÉER LE PROJET VERCEL
+# ═══════════════════════════════════════════════════════
+#
+# 1. Aller sur https://vercel.com/new
+# 2. Importer le dépôt GitHub (ou uploader ce ZIP)
+# 3. Framework Preset : "Other"
+# 4. Root Directory : (laisser par défaut)
+# 5. Ne PAS cocher "Install command" ni "Build command"
+#    → Vercel détecte automatiquement les Serverless Functions dans /api
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ÉTAPE 2 : VARIABLES D'ENVIRONNEMENT (OBLIGATOIRES)
+# ═══════════════════════════════════════════════════════
+#
+# Aller sur Vercel → Settings → Environment Variables
+# Ajouter TOUTES les variables ci-dessous :
+#
+# ┌─────────────────┬──────────────────────────────────────────────────────┐
+# │ Variable        │ Valeur                                                │
+# ├─────────────────┼──────────────────────────────────────────────────────┤
+# │ BOT_TOKEN       │ Token du bot Telegram (obtenu via @BotFather)        │
+# │                 │ Ex: 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz            │
+# │                 │                                                      │
+# │ DATABASE_URL    │ URL de connexion Neon PostgreSQL                     │
+# │                 │ Ex: postgresql://user:pass@ep-xxx.neon.tech/dbname  │
+# │                 │                                                      │
+# │ ADMIN_PASSWORD  │ Mot de passe admin (utilisé pour HMAC tokens +       │
+# │                 │   et le panneau admin)                               │
+# │                 │ Par défaut: euro54secret (mais change-le !)           │
+# │                 │                                                      │
+# │ REG_LINK        │ Lien d'affiliation 1Win avec tracking sub1           │
+# │                 │ Ex: https://one-vv522.com/?p=ltw5                    │
+# │                 │                                                      │
+# │ MIN_DEPOSIT     │ Dépôt minimum requis pour accès VIP (en $)           │
+# │                 │ Ex: 8.5                                              │
+# │                 │                                                      │
+# │ AFFILIATE_CODE  │ Code promo affiché aux utilisateurs                  │
+# │                 │ Ex: EURO54                                           │
+# │                 │                                                      │
+# │ BASE_URL        │ (OPTIONNEL) URL de ton projet Vercel                 │
+# │                 │ Ex: https://euro54-bot.vercel.app                    │
+# │                 │ Si non défini, auto-détecté via VERCEL_URL           │
+# │                 │                                                      │
+# │ PREDICTION_URL  │ (OPTIONNEL) URL de la page de prédictions            │
+# │                 │ Par défaut: https://euro-rose.vercel.app/            │
+# └─────────────────┴──────────────────────────────────────────────────────┘
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ÉTAPE 3 : CONFIGURER LE WEBHOOK TELEGRAM
+# ═══════════════════════════════════════════════════════
+#
+# Une fois Vercel déployé, configurer le webhook dans Telegram :
+#
+# URL du webhook (remplacer par ton URL Vercel) :
+#   https://TON-PROJET.vercel.app/api/webhook
+#
+# Pour configurer, ouvrir cette URL dans le navigateur :
+#   https://api.telegram.org/bot<TON_BOT_TOKEN>/setWebhook?url=https://TON-PROJET.vercel.app/api/webhook
+#
+# Pour vérifier :
+#   https://api.telegram.org/bot<TON_BOT_TOKEN>/getWebhookInfo
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ÉTAPE 4 : CONFIGURER LES POSTBACKS 1WIN
+# ═══════════════════════════════════════════════════════
+#
+# Dans le dashboard 1Win (partenaire), configurer les URLs de postback :
+#
+# Postback inscription :
+#   https://TON-PROJET.vercel.app/api/postback-register?telegram_id={sub1}&status={status}
+#
+# Postback dépôt :
+#   https://TON-PROJET.vercel.app/api/postback-deposit?telegram_id={sub1}&amount={amount}
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ÉTAPE 5 : BASE DE DONNÉES (Neon PostgreSQL)
+# ═══════════════════════════════════════════════════════
+#
+# Créer une base Neon (https://neon.tech) et exécuter ce SQL :
+#
+# ┌─────────────────────────────────────────────────────┐
+# │ CREATE TABLE IF NOT EXISTS users (                   │
+# │   id SERIAL PRIMARY KEY,                            │
+# │   telegram_id BIGINT UNIQUE,                        │
+# │   username TEXT,                                    │
+# │   first_name TEXT,                                  │
+# │   last_name TEXT,                                   │
+# │   one_win_user_id TEXT,                             │
+# │   is_registered BOOLEAN DEFAULT FALSE,              │
+# │   is_deposited BOOLEAN DEFAULT FALSE,               │
+# │   deposit_amount NUMERIC DEFAULT 0,                 │
+# │   registered_at TIMESTAMPTZ,                        │
+# │   deposited_at TIMESTAMPTZ,                         │
+# │   last_message_id INTEGER,                          │
+# │   created_at TIMESTAMPTZ DEFAULT NOW(),             │
+# │   updated_at TIMESTAMPTZ DEFAULT NOW()              │
+# │ );                                                  │
+# │                                                      │
+# │ CREATE TABLE IF NOT EXISTS access_codes (             │
+# │   id SERIAL PRIMARY KEY,                            │
+# │   code TEXT UNIQUE NOT NULL,                        │
+# │   max_uses INTEGER DEFAULT 1,                       │
+# │   uses INTEGER DEFAULT 0,                           │
+# │   created_at TIMESTAMPTZ DEFAULT NOW()              │
+# │ );                                                  │
+# │                                                      │
+# │ CREATE TABLE IF NOT EXISTS bot_sessions (            │
+# │   bot_type TEXT NOT NULL,                           │
+# │   admin_id BIGINT NOT NULL,                         │
+# │   action TEXT,                                      │
+# │   step INTEGER DEFAULT 0,                           │
+# │   temp_data TEXT,                                   │
+# │   updated_at TIMESTAMPTZ DEFAULT NOW(),             │
+# │   PRIMARY KEY (bot_type, admin_id)                  │
+# │ );                                                  │
+# └─────────────────────────────────────────────────────┘
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# STRUCTURE DES FICHIERS
+# ═══════════════════════════════════════════════════════
+#
+# euro54-bot/
+# ├── api/
+# │   ├── webhook.js          ← Webhook principal du bot Telegram
+# │   ├── claim.js            ← Vérification token HMAC + redirect prédictions
+# │   ├── admin.js            ← API admin (stats, utilisateurs, codes)
+# │   ├── admin-actions.js    ← API admin (POST: diffusion, ajout, modif, suppression)
+# │   ├── postback-register.js← Postback 1Win inscription
+# │   ├── postback-deposit.js ← Postback 1Win dépôt
+# │   └── verify-1win.js      ← Vérification manuelle ID 1Win
+# ├── lib/
+# │   └── db.js               ← Connexion Neon PostgreSQL
+# ├── public/
+# │   ├── predictions.html    ← Page prédictions (iframe euro-rose.vercel.app)
+# │   ├── access.html         ← Page d'accès (inscription/connexion)
+# │   ├── admin.html          ← Panneau admin iOS-style
+# │   └── images/             ← Images envoyées par le bot
+# ├── vercel.json             ← Config Vercel (rewrites + function timeouts)
+# └── package.json
+#
+# ═══════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════
+# ENDPOINTS
+# ═══════════════════════════════════════════════════════
+#
+# GET  /api/webhook                      ← Vérifie que le bot est en ligne
+# POST /api/webhook                      ← Reçoit les updates Telegram
+# GET  /api/claim?token=XXX              ← Vérifie HMAC → redirect /predictions ou /access
+# GET  /api/admin?action=stats&password= ← Stats (total, VIP, aujourd'hui...)
+# GET  /api/admin?action=users&password= ← Liste des utilisateurs
+# GET  /api/admin?action=generate&n=5&password= ← Générer des codes d'accès
+# POST /api/admin-actions                ← broadcast, add_user, edit_user, delete_user
+# POST /api/postback-register            ← 1Win inscription callback
+# POST /api/postback-deposit             ← 1Win dépôt callback
+# GET  /predictions                      ← Page prédictions (iframe)
+# GET  /access                           ← Page d'accès
+# GET  /admin                            ← Panneau admin
+#
+# ═══════════════════════════════════════════════════════
