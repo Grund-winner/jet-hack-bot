@@ -31,6 +31,9 @@ app.all('/api/postback-register', (req, res) => postbackRegister(req, res));
 app.all('/api/postback-deposit', (req, res) => postbackDeposit(req, res));
 app.all('/api/verify-1win', (req, res) => verify1win(req, res));
 
+const getEnv = require('./api/get-env');
+app.all('/api/get-env', (req, res) => getEnv(req, res));
+
 // ─── Start server ───
 app.listen(PORT, () => {
     console.log(`EURO54 Bot running on port ${PORT}`);
