@@ -11,6 +11,11 @@ const BASE_URL = process.env.BASE_URL || '';
 const MIN_DEPOSIT = parseFloat(process.env.MIN_DEPOSIT) || 8.5;
 const LINK_SECRET = process.env.ADMIN_PASSWORD || 'euro54secret';
 
+// ─── Vidéos canal Telegram ───
+const VIDEO_CHANNEL = '@barrronnnn';
+const VIDEO_MENU_MSG_ID = parseInt(process.env.VIDEO_MENU_MSG_ID) || 4;
+const VIDEO_SIGNAL_MSG_ID = parseInt(process.env.VIDEO_SIGNAL_MSG_ID) || 7;
+
 const V = Date.now();
 const IMG = {
     default: `${BASE_URL}/images/default.png?v=${V}`,
@@ -67,6 +72,33 @@ async function sendPhoto(chatId, userId, img, text, btns, prevMsgId) {
     const fb = await tgAPI('sendMessage', {
         chat_id: chatId, text: text,
         parse_mode: 'HTML', reply_markup: { inline_keyboard: btns }
+    });
+    if (fb.ok) {
+        try { await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [fb.result.message_id, userId]); } catch (e) {}
+    }
+    return fb;
+}
+
+// ─── Envoyer une vidéo copiée depuis le canal Telegram (avec caption + boutons) ───
+async function sendVideoFromChannel(chatId, userId, channelMsgId, caption, btns, prevMsgId) {
+    if (prevMsgId) await deleteMsg(chatId, prevMsgId);
+    const res = await tgAPI('copyMessage', {
+        from_chat_id: VIDEO_CHANNEL,
+        message_id: channelMsgId,
+        chat_id: chatId,
+        caption: caption,
+        parse_mode: 'HTML',
+        reply_markup: btns ? { inline_keyboard: btns } : undefined
+    });
+    if (res.ok) {
+        try { await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [res.result.message_id, userId]); } catch (e) {}
+        return res;
+    }
+    // Fallback: envoyer en texte si la vidéo ne peut pas être copiée
+    console.error('copyMessage failed, falling back to sendMessage');
+    const fb = await tgAPI('sendMessage', {
+        chat_id: chatId, text: caption,
+        parse_mode: 'HTML', reply_markup: btns ? { inline_keyboard: btns } : undefined
     });
     if (fb.ok) {
         try { await query('UPDATE users SET last_message_id = $1, updated_at = NOW() WHERE telegram_id = $2', [fb.result.message_id, userId]); } catch (e) {}
@@ -212,7 +244,7 @@ function signalMenuBtns(signalsCount) {
     ];
 }
 
-// ─── Lucky Jet Menu ───
+// ─── Lucky Jet Menu (avec vidéo du canal) ───
 async function renderLuckyJetMenu(chatId, userId, prevMsgId) {
     const sigData = await getSignals(userId);
     const sigCount = sigData.signals;
@@ -225,7 +257,7 @@ async function renderLuckyJetMenu(chatId, userId, prevMsgId) {
     txt += `➤ Tranche : ${rangeLabel}X\n`;
     txt += `➤ ID : ${userId}`;
 
-    await sendPhoto(chatId, userId, IMG.default, txt, signalMenuBtns(sigCount), prevMsgId);
+    await sendVideoFromChannel(chatId, userId, VIDEO_MENU_MSG_ID, txt, signalMenuBtns(sigCount), prevMsgId);
 }
 
 // ─── Text Handler ───
@@ -452,12 +484,6 @@ async function handleUpdate(update) {
                 await removeSignals(userId, 1);
                 await setLastSignalTime(userId);
 
-                // Delete old message
-                const user2 = await getUser(userId);
-                if (user2?.last_message_id) {
-                    await deleteMsg(chatId, user2.last_message_id);
-                }
-
                 const signalMsg = generateSignal(sigData.range);
                 const newSigData = await getSignals(userId);
                 let kb = [
@@ -465,16 +491,9 @@ async function handleUpdate(update) {
                     [{ text: "MENU PRINCIPAL ➡️", callback_data: 'nav_home' }]
                 ];
 
-                const res = await tgAPI('sendMessage', {
-                    chat_id: chatId,
-                    text: signalMsg,
-                    parse_mode: 'HTML',
-                    reply_markup: { inline_keyboard: kb }
-                });
-
-                if (res.ok) {
-                    try { await query('UPDATE users SET last_message_id = $1 WHERE telegram_id = $2', [res.result.message_id, userId]); } catch (e) {}
-                }
+                // Envoyer signal avec vidéo du canal (sendVideoFromChannel gère la suppression du msg précédent)
+                const user2 = await getUser(userId);
+                await sendVideoFromChannel(chatId, userId, VIDEO_SIGNAL_MSG_ID, signalMsg, kb, user2?.last_message_id);
                 return;
             }
 
