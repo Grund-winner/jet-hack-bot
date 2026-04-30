@@ -3,24 +3,31 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
-// CORS - allow all origins
+const GAME_BASE = 'https://crash-gateway-grm-cr.gamedev-tech.cc';
+
+// CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Auth-Token');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+// Serve dashboard at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+// ==================== DATA STORAGE ====================
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 function readData() {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    }
+    if (fs.existsSync(DATA_FILE)) return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
   } catch (e) {}
   return { rounds: {}, roundOrder: [], players: {} };
 }
@@ -34,13 +41,123 @@ function ensureDir() {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// Health check
-app.get('/api/health', (req, res) => {
-  const data = readData();
-  res.json({ status: 'alive', totalRounds: data.roundOrder.length });
+function getRange(v) {
+  if (v < 1.5) return 'under1_5';
+  if (v < 2) return 'x1_5_to_2';
+  if (v < 3) return 'x2_to_3';
+  if (v < 5) return 'x3_to_5';
+  if (v < 10) return 'x5_to_10';
+  return 'over10';
+}
+
+function recordRound(store, roundData) {
+  const { roundId, winningCar, crashBlue, crashOrange, totalBets, totalPlayers, durationSeconds, phase } = roundData;
+  if (!roundId) return;
+  
+  store.rounds[roundId] = {
+    id: roundId, roundId, winningCar: winningCar || 'blue',
+    crashBlue: crashBlue || 1, crashOrange: crashOrange || 1,
+    totalBets: totalBets || 0, totalPlayers: totalPlayers || 0,
+    durationSeconds: durationSeconds || 0, phase: phase || 'crashed',
+    createdAt: store.rounds[roundId]?.createdAt || new Date().toISOString(),
+    endedAt: new Date().toISOString()
+  };
+  
+  if (!store.roundOrder.includes(roundId)) {
+    store.roundOrder.push(roundId);
+    if (store.roundOrder.length > 2000) {
+      const removed = store.roundOrder.shift();
+      delete store.rounds[removed];
+    }
+  }
+}
+
+// ==================== API: GAME PROXY ====================
+
+app.post('/api/proxy', async (req, res) => {
+  try {
+    const { action, authToken, sessionId, customerId } = req.body;
+    
+    if (action === 'authenticate') {
+      if (!authToken) return res.status(400).json({ error: 'Token requis' });
+      
+      const r = await fetch(`${GAME_BASE}/user/auth`, {
+        method: 'POST',
+        headers: { 'Auth-Token': authToken, 'Content-Type': 'application/json' },
+      });
+      const text = await r.text();
+      if (!r.ok) return res.status(r.status).json({ error: `Auth echouee: ${r.status}`, details: text });
+      
+      const data = JSON.parse(text);
+      const sid = data.sessionId || data.session_id || '';
+      const cid = data.customerId || data.customer_id || '';
+      if (!sid || !cid) return res.status(500).json({ error: 'Reponse auth invalide', raw: data });
+      
+      return res.json({ sessionId: sid, customerId: cid });
+    }
+    
+    if (action === 'state') {
+      if (!sessionId || !customerId) return res.status(400).json({ error: 'Credentials requises' });
+      
+      const r = await fetch(`${GAME_BASE}/state`, {
+        headers: { 'Session-Id': sessionId, 'Customer-Id': customerId },
+      });
+      if (r.status === 401 || r.status === 403) return res.status(401).json({ error: 'Token expire', expired: true });
+      if (!r.ok) return res.status(r.status).json({ error: `Erreur API: ${r.status}` });
+      
+      const data = await r.json();
+      return res.json({ ...data, connected: true });
+    }
+    
+    if (action === 'history') {
+      if (!sessionId || !customerId) return res.status(400).json({ error: 'Credentials requises' });
+      
+      const limit = req.body.limit || 50;
+      const r = await fetch(`${GAME_BASE}/history/last?limit=${limit}`, {
+        headers: { 'Session-Id': sessionId, 'Customer-Id': customerId },
+      });
+      if (r.status === 401 || r.status === 403) return res.status(401).json({ error: 'Token expire', expired: true });
+      if (!r.ok) return res.status(r.status).json({ error: `Erreur API: ${r.status}` });
+      
+      const data = await r.json();
+      const rounds = data.history || data.rounds || (Array.isArray(data) ? data : []);
+      
+      // Store rounds
+      ensureDir();
+      const store = readData();
+      for (const rd of rounds) {
+        try {
+          const cf = rd.coefficients || rd.cars || [];
+          const crashBlue = (cf[0] && (cf[0].value || cf[0].coefficient || cf[0])) || 1;
+          const crashOrange = (cf[1] && (cf[1].value || cf[1].coefficient || cf[1])) || 1;
+          const winIdx = rd.winner ?? rd.winningCar;
+          const winningCar = winIdx === 0 || winIdx === 'blue' ? 'blue' : 'orange';
+          
+          recordRound(store, {
+            roundId: rd.id || rd.roundId || `r_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            winningCar,
+            crashBlue: typeof crashBlue === 'number' ? crashBlue : parseFloat(crashBlue) || 1,
+            crashOrange: typeof crashOrange === 'number' ? crashOrange : parseFloat(crashOrange) || 1,
+            totalBets: rd.betCount || rd.totalBets || 0,
+            totalPlayers: rd.playersCount || rd.totalPlayers || 0,
+            durationSeconds: rd.duration || 0,
+            phase: rd.phase || rd.state || 'crashed',
+          });
+        } catch (e) { /* skip */ }
+      }
+      writeData(store);
+      
+      return res.json({ rounds, connected: true });
+    }
+    
+    res.status(400).json({ error: 'Action inconnue' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// POST /api/collect - Receive data from userscript
+// ==================== API: COLLECT (legacy userscript) ====================
+
 app.post('/api/collect', (req, res) => {
   try {
     const { type, data } = req.body;
@@ -53,8 +170,7 @@ app.post('/api/collect', (req, res) => {
       const orangeCoef = data.crashOrange || 1;
       const winner = blueCoef > orangeCoef ? 'blue' : blueCoef < orangeCoef ? 'orange' : 'tie';
 
-      store.rounds[roundId] = {
-        id: roundId,
+      recordRound(store, {
         roundId,
         winningCar: data.winningCar || winner,
         crashBlue: blueCoef,
@@ -63,16 +179,7 @@ app.post('/api/collect', (req, res) => {
         totalPlayers: data.totalPlayers || 0,
         durationSeconds: data.duration || 0,
         phase: 'crashed',
-        createdAt: store.rounds[roundId]?.createdAt || new Date().toISOString(),
-        endedAt: new Date().toISOString()
-      };
-      if (!store.roundOrder.includes(roundId)) {
-        store.roundOrder.push(roundId);
-        if (store.roundOrder.length > 1000) {
-          const removed = store.roundOrder.shift();
-          delete store.rounds[removed];
-        }
-      }
+      });
     } else if (type === 'round_start') {
       const roundId = data.roundId || `round_${Date.now()}`;
       if (!store.rounds[roundId]) {
@@ -100,9 +207,7 @@ app.post('/api/collect', (req, res) => {
             store.roundOrder.push(rid);
           }
         }
-        if (store.roundOrder.length > 1000) {
-          store.roundOrder = store.roundOrder.slice(-1000);
-        }
+        if (store.roundOrder.length > 2000) store.roundOrder = store.roundOrder.slice(-2000);
       }
     } else if (type === 'ping') {
       writeData(store);
@@ -116,13 +221,13 @@ app.post('/api/collect', (req, res) => {
   }
 });
 
-// GET /api/collect - Check status
 app.get('/api/collect', (req, res) => {
   const data = readData();
   res.json({ collecting: data.roundOrder.length > 0, totalRounds: data.roundOrder.length });
 });
 
-// GET /api/stats - Get all stats
+// ==================== API: STATS ====================
+
 app.get('/api/stats', (req, res) => {
   try {
     const data = readData();
@@ -136,7 +241,6 @@ app.get('/api/stats', (req, res) => {
     const maxBlue = totalRounds > 0 ? Math.max(...allRounds.map(r => r.crashBlue)) : 0;
     const maxOrange = totalRounds > 0 ? Math.max(...allRounds.map(r => r.crashOrange)) : 0;
 
-    // Streaks
     let currentStreak = 0, streakCar = '', maxBlueStreak = 0, maxOrangeStreak = 0;
     let tempBlue = 0, tempOrange = 0;
     for (const r of allRounds) {
@@ -149,10 +253,8 @@ app.get('/api/stats', (req, res) => {
       else break;
     }
 
-    // Distribution
     const blueRanges = { under1_5:0, x1_5_to_2:0, x2_to_3:0, x3_to_5:0, x5_to_10:0, over10:0 };
     const orangeRanges = { under1_5:0, x1_5_to_2:0, x2_to_3:0, x3_to_5:0, x5_to_10:0, over10:0 };
-    function getRange(v) { if(v<1.5) return 'under1_5'; if(v<2) return 'x1_5_to_2'; if(v<3) return 'x2_to_3'; if(v<5) return 'x3_to_5'; if(v<10) return 'x5_to_10'; return 'over10'; }
     for (const r of allRounds) { blueRanges[getRange(r.crashBlue)]++; orangeRanges[getRange(r.crashOrange)]++; }
 
     const topPlayers = Object.values(data.players || []).sort((a,b) => b.totalProfit - a.totalProfit).slice(0,20);
@@ -174,5 +276,11 @@ app.get('/api/stats', (req, res) => {
   }
 });
 
+// Health
+app.get('/api/health', (req, res) => {
+  const data = readData();
+  res.json({ status: 'alive', totalRounds: data.roundOrder.length, version: '3.0' });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Speed & Cash Backend running on port ' + PORT));
+app.listen(PORT, () => console.log(`Speed & Cash Monitor v3.0 running on port ${PORT}`));

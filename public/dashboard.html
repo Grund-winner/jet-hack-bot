@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Speed & Cash — Live Monitor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 4L36 12V28L20 36L4 28V12L20 4Z' fill='%2300ff88' opacity='0.8'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06060f;--card:#0c0c1a;--card-h:#10102a;--input:#0a0a18;
+  --border:#1a1a3a;--border-g:#00ff8820;
+  --accent:#00ff88;--accent-d:#00ff8840;--accent-g:#00ff8815;
+  --cyan:#00ccff;--blue:#4488ff;--orange:#ff8844;
+  --danger:#ff3366;--warn:#ffaa00;
+  --text:#d0d0e0;--text-d:#7a7a9a;--text-m:#4a4a6a;
+  --mono:'SF Mono','Fira Code','JetBrains Mono',monospace;
+}
+html{background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#0a0a18}
+::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:4px}
+
+.bg-grid{
+  background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+
+/* Header */
+.hdr{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);border-bottom:1px solid var(--border);background:rgba(6,6,15,.88)}
+.hdr-inner{max-width:1200px;margin:0 auto;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.hdr-left{display:flex;align-items:center;gap:12px}
+.hdr-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,204,255,.08));border:1px solid rgba(0,255,136,.3);display:flex;align-items:center;justify-content:center}
+.hdr-title{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.3px;line-height:1}
+.hdr-sub{font-size:10px;color:var(--text-m);line-height:1;margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.live-badge{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse-g 2s ease-in-out infinite}
+.live-text{font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+.poll-info{font-size:10px;color:var(--text-m);font-family:var(--mono)}
+.disconnect-btn{background:none;border:none;color:var(--text-m);cursor:pointer;padding:6px;border-radius:8px;transition:all .15s}
+.disconnect-btn:hover{background:var(--border);color:var(--danger)}
+
+/* Status bar */
+.status-bar{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;position:relative;overflow:hidden;border-radius:10px;background:linear-gradient(90deg,rgba(0,255,136,.04),rgba(0,204,255,.02),rgba(0,255,136,.04));border:1px solid rgba(0,255,136,.1)}
+.phase-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.phase-text{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.multiplier{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:18px;font-weight:700}
+.car-dot{width:8px;height:8px;border-radius:50%}
+.status-meta{font-size:10px;color:var(--text-m);font-family:var(--mono);margin-left:auto}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.card-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-hdr-left{display:flex;align-items:center;gap:8px}
+.card-hdr-title{font-size:11px;font-weight:600;color:#fff;text-transform:uppercase;letter-spacing:.8px}
+.card-hdr-meta{font-size:10px;color:var(--text-m);font-family:var(--mono)}
+.card-body{padding:14px}
+
+/* Stats row */
+.stats-row{max-width:1200px;margin:0 auto;padding:0 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(min-width:640px){.stats-row{grid-template-columns:repeat(6,1fr);gap:10px}}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;transition:all .15s}
+.stat-card:hover{border-color:var(--border-g);background:var(--card-h)}
+.stat-label{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-m);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-family:var(--mono);font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-sub{font-size:10px;color:var(--text-m);margin-top:2px}
+.hot-badge{margin-left:auto;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:rgba(255,51,102,.12);color:var(--danger);border:1px solid rgba(255,51,102,.25)}
+
+/* Main grid */
+.main-grid{max-width:1200px;margin:0 auto;padding:0 16px;display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:1024px){.main-grid{grid-template-columns:3fr 2fr}}
+
+/* Badges strip */
+.badges-strip{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:4px;max-height:80px;overflow:hidden}
+.round-badge{display:inline-flex;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:var(--mono);transition:all .12s}
+.round-badge:hover{transform:scale(1.06)}
+.badge-b{background:rgba(68,136,255,.12);color:#4488ff;border:1px solid rgba(68,136,255,.2)}
+.badge-o{background:rgba(255,136,68,.12);color:#ff8844;border:1px solid rgba(255,136,68,.2)}
+
+/* Table */
+.tbl-wrap{max-height:400px;overflow-y:auto}
+table.dt{width:100%;border-collapse:separate;border-spacing:0}
+table.dt thead th{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-d);padding:8px 12px;text-align:left;background:rgba(10,10,26,.85);position:sticky;top:0;backdrop-filter:blur(8px)}
+table.dt tbody td{padding:7px 12px;font-size:12px;border-top:1px solid rgba(26,26,58,.4);font-family:var(--mono)}
+table.dt tbody tr{transition:background .12s}
+table.dt tbody tr:hover{background:rgba(0,255,136,.03)}
+table.dt .crash-b{color:#4488ff;font-weight:600}
+table.dt .crash-o{color:#ff8844;font-weight:600}
+
+/* Pattern grid */
+.pattern-grid{padding:14px;display:flex;flex-wrap:wrap;gap:3px}
+.p-cell{width:18px;height:18px;border-radius:3px;transition:all .12s}
+@media(max-width:640px){.p-cell{width:13px;height:13px}}
+.p-cell:hover{transform:scale(1.3);z-index:1}
+
+/* Right panel analytics */
+.analytics-col{display:flex;flex-direction:column;gap:14px}
+
+/* Donut chart section */
+.donut-section{display:flex;align-items:center;gap:20px}
+.win-stat{margin-bottom:12px}
+.win-stat:last-child{margin-bottom:0}
+.win-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-d);margin-bottom:3px}
+.win-dot{width:10px;height:10px;border-radius:3px}
+.win-value{font-family:var(--mono);font-size:20px;font-weight:700}
+.win-sub{font-size:10px;color:var(--text-m)}
+
+/* Distribution */
+.dist-section{margin-bottom:12px}
+.dist-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.dist-row{display:flex;align-items:center;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.dist-count{font-family:var(--mono)}
+.dist-bar-bg{height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:3px}
+.dist-bar-fill{height:100%;border-radius:4px;transition:width .4s ease;opacity:.8}
+
+/* Streak rows */
+.streak-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;background:var(--input);margin-bottom:6px}
+.streak-row.hot{background:rgba(255,51,102,.06);border:1px solid rgba(255,51,102,.15)}
+.streak-label{font-size:11px;color:var(--text-d)}
+.streak-value{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:16px;font-weight:700}
+.streak-car{font-size:10px;font-weight:600}
+
+/* Indicators */
+.indicator{padding:8px 10px;border-radius:8px;background:var(--input);margin-bottom:6px}
+.indicator.alert{background:rgba(255,51,102,.06);border:1px solid rgba(255,51,102,.15)}
+.indicator.warning{background:rgba(255,170,0,.06);border:1px solid rgba(255,170,0,.15)}
+.ind-label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;margin-bottom:2px}
+.ind-dot{width:6px;height:6px;border-radius:50%}
+.ind-text{font-size:10px;color:var(--text-m);padding-left:12px;line-height:1.5}
+
+/* Mobile tabs */
+.mob-tabs{display:flex;gap:4px;padding:4px;border-radius:8px;background:var(--input);border:1px solid var(--border);max-width:1200px;margin:0 auto}
+@media(min-width:640px){.mob-tabs{display:none}}
+.mob-tab{flex:1;padding:8px;border-radius:6px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;transition:all .15s;background:none;border:none;color:var(--text-m)}
+.mob-tab.active{background:rgba(0,255,136,.1);color:var(--accent)}
+.mob-panel{display:block}
+@media(min-width:640px){.mob-panel.hide-mobile{display:block !important}}
+@media(max-width:639px){.mob-panel.hide-mobile{display:none !important}}
+
+/* Setup overlay */
+.setup-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg);background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);background-size:40px 40px}
+.setup-card{width:100%;max-width:400px;margin:0 16px;animation:fade-in .4s ease-out}
+.setup-logo{text-align:center;margin-bottom:32px}
+.setup-logo-icon{display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:16px;background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,204,255,.08));border:1px solid rgba(0,255,136,.3);margin-bottom:16px;box-shadow:0 0 25px rgba(0,255,136,.1)}
+.setup-title{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px}
+.setup-subtitle{font-size:13px;color:var(--text-m);margin-top:4px}
+.setup-form{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.setup-error{margin-bottom:14px;padding:10px 12px;border-radius:8px;background:rgba(255,51,102,.08);border:1px solid rgba(255,51,102,.2);color:var(--danger);font-size:11px}
+.setup-label{display:block;font-size:10px;font-weight:600;color:var(--text-d);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.setup-textarea{width:100%;background:var(--input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);font-family:var(--mono);resize:none;outline:none;transition:border-color .15s}
+.setup-textarea:focus{border-color:var(--accent-d)}
+.setup-textarea::placeholder{color:var(--text-m)}
+.setup-btn{width:100%;padding:11px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .15s;margin-top:14px}
+.setup-btn-primary{background:linear-gradient(135deg,#00ff88,#00cc88);color:#06060f;box-shadow:0 0 20px rgba(0,255,136,.2)}
+.setup-btn-primary:hover{filter:brightness(1.1)}
+.setup-btn-primary:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.setup-btn-error{background:rgba(255,51,102,.15);color:var(--danger);border:1px solid rgba(255,51,102,.3)}
+.setup-steps{margin-top:16px}
+.setup-step{display:flex;gap:10px;padding:10px;border-radius:8px;background:var(--input);margin-bottom:6px}
+.setup-step:last-child{margin-bottom:0}
+.step-num{width:20px;height:20px;border-radius:50%;background:rgba(0,255,136,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--accent)}
+.step-text{font-size:11px;color:var(--text-d);line-height:1.5}
+.step-text b{color:var(--text);font-weight:500}
+.step-text code{font-family:var(--mono);font-size:10px;color:var(--text);background:rgba(255,255,255,.05);padding:1px 4px;border-radius:3px}
+.setup-footer{text-align:center;margin-top:20px;font-size:10px;color:var(--text-m)}
+
+/* Spin animation */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--accent-d);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+
+/* Animations */
+@keyframes pulse-g{0%,100%{opacity:1;box-shadow:0 0 4px rgba(0,255,136,.4)}50%{opacity:.5;box-shadow:0 0 8px rgba(0,255,136,.8)}}
+@keyframes fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(200%)}}
+.scanline{position:relative;overflow:hidden}
+.scanline::after{content:'';position:absolute;top:0;left:0;right:0;height:30%;background:linear-gradient(transparent,rgba(0,255,136,.015),transparent);animation:scanline 4s linear infinite;pointer-events:none}
+
+/* Glow */
+.glow{box-shadow:0 0 15px rgba(0,255,136,.15),0 0 30px rgba(0,255,136,.05)}
+.glow-strong{box-shadow:0 0 12px rgba(0,255,136,.25),0 0 24px rgba(0,255,136,.1)}
+.text-glow{text-shadow:0 0 10px rgba(0,255,136,.5)}
+</style>
+</head>
+<body class="bg-grid">
+
+<!-- ==================== SETUP OVERLAY ==================== -->
+<div id="setup-screen" class="setup-overlay" style="display:none">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="setup-logo-icon">
+        <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+          <path d="M20 4L36 12V28L20 36L4 28V12L20 4Z" stroke="#00ff88" stroke-width="2" fill="none"/>
+          <path d="M20 12L28 16V24L20 28L12 24V16L20 12Z" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="1.5"/>
+          <path d="M15 20L19 17L19 23L15 20Z" fill="#00ff88"/>
+          <path d="M25 20L21 17L21 23L25 20Z" fill="#00ccff"/>
+        </svg>
+      </div>
+      <div class="setup-title">SPEED & CASH</div>
+      <div class="setup-subtitle">LIVE MONITOR v3.0</div>
+    </div>
+
+    <div class="setup-form">
+      <div id="setup-error" class="setup-error" style="display:none"></div>
+
+      <label class="setup-label">Auth Token (1Win)</label>
+      <textarea id="token-input" class="setup-textarea" rows="3" placeholder="Collez votre token d'authentification ici..."></textarea>
+
+      <button id="connect-btn" class="setup-btn setup-btn-primary" onclick="handleConnect()">SE CONNECTER</button>
+
+      <div class="setup-steps">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Ouvrez <b>1Win</b> et lancez le jeu Speed & Cash</div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Appuyez sur <b>F12</b> → Onglet Network → Trouvez une requete vers <code>crash-gateway-grm-cr</code></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Copiez la valeur du header <code>Auth-Token</code> ou <code>authorization</code> et collez-la ci-dessus</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-footer">Token stocke localement sur votre appareil uniquement</div>
+  </div>
+</div>
+
+<!-- ==================== MAIN DASHBOARD ==================== -->
+<div id="dashboard" style="display:none">
+
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-inner">
+      <div class="hdr-left">
+        <div class="hdr-logo">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+            <path d="M20 4L36 12V28L20 36L4 28V12L20 4Z" stroke="#00ff88" stroke-width="2.5" fill="none"/>
+            <path d="M15 20L19 17L19 23L15 20Z" fill="#00ff88"/>
+            <path d="M25 20L21 17L21 23L25 20Z" fill="#00ccff"/>
+          </svg>
+        </div>
+        <div>
+          <div class="hdr-title">SPEED & CASH</div>
+          <div class="hdr-sub">LIVE MONITOR</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <div class="poll-info" id="poll-info"></div>
+        <div class="live-badge">
+          <div class="live-dot"></div>
+          <span class="live-text">Live</span>
+        </div>
+        <button class="disconnect-btn" onclick="handleDisconnect()" title="Deconnecter">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding:12px 0">
+    <!-- Status bar -->
+    <div class="status-bar scanline" id="status-bar">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="phase-dot" id="phase-dot" style="background:var(--warn)"></div>
+        <span class="phase-text" id="phase-text" style="color:var(--warn)">CONNEXION...</span>
+      </div>
+      <div class="multiplier" id="multiplier-display" style="display:none">
+        <div class="car-dot" style="background:var(--blue)"></div>
+        <span style="color:var(--blue)" id="live-blue">x1.00</span>
+        <span style="color:var(--border)">|</span>
+        <div class="car-dot" style="background:var(--orange)"></div>
+        <span style="color:var(--orange)" id="live-orange">x1.00</span>
+      </div>
+      <div class="status-meta" id="status-meta"></div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row" style="margin-top:12px">
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6V12L16 14"/></svg>
+          <span>Rounds</span>
+        </div>
+        <div class="stat-value" id="stat-rounds">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><div style="width:12px;height:12px;border-radius:3px;background:var(--blue)"></div><span>Bleue</span></div>
+        <div class="stat-value" style="color:var(--blue)" id="stat-blue-rate">0.0%</div>
+        <div class="stat-sub" id="stat-blue-wins">0W</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><div style="width:12px;height:12px;border-radius:3px;background:var(--orange)"></div><span>Orange</span></div>
+        <div class="stat-value" style="color:var(--orange)" id="stat-orange-rate">0.0%</div>
+        <div class="stat-sub" id="stat-orange-wins">0W</div>
+      </div>
+      <div class="stat-card" id="streak-card">
+        <div class="stat-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Serie</span>
+          <span class="hot-badge" id="streak-hot" style="display:none">HOT</span>
+        </div>
+        <div class="stat-value" id="stat-streak">0</div>
+        <div class="stat-sub" id="stat-streak-car">---</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Max Blue</span>
+        </div>
+        <div class="stat-value" style="color:var(--blue)" id="stat-max-blue">x0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Max Orange</span>
+        </div>
+        <div class="stat-value" style="color:var(--orange)" id="stat-max-orange">x0</div>
+      </div>
+    </div>
+
+    <!-- Mobile tabs -->
+    <div class="mob-tabs" style="margin-top:12px">
+      <button class="mob-tab active" onclick="switchMobileTab('history',this)">Historique</button>
+      <button class="mob-tab" onclick="switchMobileTab('analytics',this)">Analytics</button>
+    </div>
+
+    <!-- Main grid -->
+    <div class="main-grid" style="margin-top:14px">
+      <!-- Left: History -->
+      <div id="panel-history" class="mob-panel">
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-hdr-left">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span class="card-hdr-title">Historique des Rounds</span>
+            </div>
+            <span class="card-hdr-meta" id="history-count">0 derniers</span>
+          </div>
+          <div class="badges-strip" id="badges-strip"></div>
+          <div class="tbl-wrap">
+            <table class="dt">
+              <thead><tr>
+                <th>#</th><th>Round</th><th style="text-align:center;color:var(--blue)">Bleue</th><th style="text-align:center;color:var(--orange)">Orange</th><th style="text-align:center">Gagnante</th><th style="text-align:right">Heure</th>
+              </tr></thead>
+              <tbody id="history-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-m);font-size:13px">Chargement des rounds...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pattern grid -->
+        <div class="card" style="margin-top:14px" id="pattern-card" hidden>
+          <div class="card-hdr">
+            <div class="card-hdr-left">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              <span class="card-hdr-title">Pattern Visuel</span>
+            </div>
+          </div>
+          <div class="pattern-grid" id="pattern-grid"></div>
+        </div>
+      </div>
+
+      <!-- Right: Analytics -->
+      <div id="panel-analytics" class="mob-panel hide-mobile">
+        <div class="analytics-col">
+          <!-- Win rate donut -->
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-hdr-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                <span class="card-hdr-title">Taux de Victoire</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="donut-section">
+                <svg id="donut-chart" width="100" height="100" viewBox="0 0 100 100"></svg>
+                <div style="flex:1">
+                  <div class="win-stat">
+                    <div class="win-label"><div class="win-dot" style="background:var(--blue)"></div>Bleue</div>
+                    <div class="win-value" style="color:var(--blue)" id="win-blue-pct">0.0%</div>
+                    <div class="win-sub" id="win-blue-count">0 victoires</div>
+                  </div>
+                  <div class="win-stat">
+                    <div class="win-label"><div class="win-dot" style="background:var(--orange)"></div>Orange</div>
+                    <div class="win-value" style="color:var(--orange)" id="win-orange-pct">0.0%</div>
+                    <div class="win-sub" id="win-orange-count">0 victoires</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Distribution -->
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-hdr-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                <span class="card-hdr-title">Distribution Crash</span>
+              </div>
+            </div>
+            <div class="card-body" id="dist-container"></div>
+          </div>
+
+          <!-- Streaks -->
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-hdr-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                <span class="card-hdr-title">Analyse des Series</span>
+              </div>
+            </div>
+            <div class="card-body" id="streaks-container"></div>
+          </div>
+
+          <!-- Indicators -->
+          <div class="card">
+            <div class="card-hdr">
+              <div class="card-hdr-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span class="card-hdr-title">Indicateurs</span>
+              </div>
+            </div>
+            <div class="card-body" id="indicators-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ==================== STATE ====================
+let creds = null;
+let stats = null;
+let gameState = null;
+let pollCount = 0;
+let isPolling = false;
+let pollInterval = null;
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const saved = localStorage.getItem('snc_creds');
+    if (saved) {
+      creds = JSON.parse(saved);
+      showDashboard();
+      startPolling();
+    } else {
+      showSetup();
+    }
+  } catch(e) {
+    showSetup();
+  }
+});
+
+// ==================== SETUP ====================
+function showSetup() {
+  document.getElementById('setup-screen').style.display = '';
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+function showDashboard() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = '';
+}
+
+async function handleConnect() {
+  const input = document.getElementById('token-input').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('connect-btn');
+  const errEl = document.getElementById('setup-error');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Connexion en cours...';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'authenticate', authToken: input })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      errEl.textContent = data.error + (data.details ? ' — ' + data.details : '');
+      errEl.style.display = '';
+      btn.className = 'setup-btn setup-btn-error';
+      btn.textContent = 'Reessayer';
+      btn.disabled = false;
+      return;
+    }
+
+    creds = { authToken: input, sessionId: data.sessionId, customerId: data.customerId };
+    localStorage.setItem('snc_creds', JSON.stringify(creds));
+    showDashboard();
+    startPolling();
+  } catch(e) {
+    errEl.textContent = 'Erreur de connexion au serveur';
+    errEl.style.display = '';
+    btn.className = 'setup-btn setup-btn-error';
+    btn.textContent = 'Reessayer';
+    btn.disabled = false;
+  }
+}
+
+function handleDisconnect() {
+  creds = null;
+  stats = null;
+  gameState = null;
+  pollCount = 0;
+  localStorage.removeItem('snc_creds');
+  if (pollInterval) clearInterval(pollInterval);
+  showSetup();
+  document.getElementById('token-input').value = '';
+  document.getElementById('connect-btn').className = 'setup-btn setup-btn-primary';
+  document.getElementById('connect-btn').textContent = 'SE CONNECTER';
+  document.getElementById('connect-btn').disabled = false;
+  document.getElementById('setup-error').style.display = 'none';
+}
+
+// ==================== POLLING ====================
+function startPolling() {
+  poll();
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(poll, 3000);
+}
+
+async function poll() {
+  if (!creds || isPolling) return;
+  isPolling = true;
+
+  try {
+    const [stateRes, histRes] = await Promise.allSettled([
+      fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'state', sessionId: creds.sessionId, customerId: creds.customerId })
+      }),
+      fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'history', sessionId: creds.sessionId, customerId: creds.customerId, limit: 50 })
+      })
+    ]);
+
+    if (stateRes.status === 'fulfilled') {
+      const sd = await stateRes.value.json();
+      if (sd.expired) {
+        handleDisconnect();
+        showSetupError('Session expiree. Reconnectez avec un nouveau token.');
+        return;
+      }
+      if (sd.connected) gameState = sd;
+    }
+
+    if (histRes.status === 'fulfilled') {
+      const hd = await histRes.value.json();
+      if (hd.expired) { handleDisconnect(); return; }
+    }
+
+    const statsRes = await fetch('/api/stats');
+    if (statsRes.ok) stats = await statsRes.json();
+
+    pollCount++;
+    renderAll();
+  } catch(e) {
+    // retry next cycle
+  } finally {
+    isPolling = false;
+  }
+}
+
+function showSetupError(msg) {
+  showSetup();
+  const errEl = document.getElementById('setup-error');
+  errEl.textContent = msg;
+  errEl.style.display = '';
+  document.getElementById('connect-btn').className = 'setup-btn setup-btn-error';
+  document.getElementById('connect-btn').textContent = 'Reessayer';
+  document.getElementById('connect-btn').disabled = false;
+}
+
+// ==================== RENDER ====================
+function renderAll() {
+  // Poll info
+  document.getElementById('poll-info').textContent = pollCount + ' polls';
+
+  // Game state
+  if (gameState) {
+    const phase = gameState.state || gameState.phase || gameState.status || '---';
+    const isRacing = phase === 'racing' || phase === 'playing' || phase === 'started';
+    const isCrashed = phase === 'crashed' || phase === 'ended' || phase === 'finished';
+    const isWaiting = phase === 'waiting' || phase === 'betting' || phase === 'idle';
+
+    const dot = document.getElementById('phase-dot');
+    const txt = document.getElementById('phase-text');
+    const multi = document.getElementById('multiplier-display');
+
+    if (isRacing) {
+      dot.style.background = 'var(--accent)';
+      txt.style.color = 'var(--accent)';
+      txt.textContent = 'RACING';
+      multi.style.display = '';
+      const cf = gameState.coefficients || gameState.cars || [];
+      document.getElementById('live-blue').textContent = 'x' + (cf[0]?.value || 0).toFixed(2);
+      document.getElementById('live-orange').textContent = 'x' + (cf[1]?.value || 0).toFixed(2);
+    } else if (isCrashed) {
+      dot.style.background = 'var(--danger)';
+      txt.style.color = 'var(--danger)';
+      txt.textContent = 'CRASHED';
+      multi.style.display = 'none';
+    } else {
+      dot.style.background = 'var(--warn)';
+      txt.style.color = 'var(--warn)';
+      txt.textContent = isWaiting ? 'ATTENTE' : phase.toUpperCase();
+      multi.style.display = 'none';
+    }
+
+    const meta = [];
+    if (gameState.betCount) meta.push(gameState.betCount + ' paris');
+    if (gameState.playersCount) meta.push(gameState.playersCount + ' joueurs');
+    meta.push('sync: ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+    document.getElementById('status-meta').textContent = meta.join('  ');
+  }
+
+  if (!stats) return;
+
+  // Stats row
+  document.getElementById('stat-rounds').textContent = stats.totalRounds || 0;
+  document.getElementById('stat-blue-rate').textContent = (stats.blueWinRate || '0') + '%';
+  document.getElementById('stat-blue-wins').textContent = (stats.blueWins || 0) + 'W';
+  document.getElementById('stat-orange-rate').textContent = (stats.orangeWinRate || '0') + '%';
+  document.getElementById('stat-orange-wins').textContent = (stats.orangeWins || 0) + 'W';
+
+  const streak = stats.currentStreak || 0;
+  document.getElementById('stat-streak').textContent = streak;
+  document.getElementById('stat-streak-car').textContent = stats.streakCar === 'blue' ? 'BLE' : stats.streakCar === 'orange' ? 'ORA' : '---';
+  document.getElementById('stat-streak').style.color = stats.streakCar === 'blue' ? 'var(--blue)' : 'var(--orange)';
+  const hotBadge = document.getElementById('streak-hot');
+  const streakCard = document.getElementById('streak-card');
+  if (streak >= 3) {
+    hotBadge.style.display = '';
+    streakCard.classList.add('glow-strong');
+  } else {
+    hotBadge.style.display = 'none';
+    streakCard.classList.remove('glow-strong');
+  }
+
+  document.getElementById('stat-max-blue').textContent = 'x' + (stats.maxCrashBlue || '0');
+  document.getElementById('stat-max-orange').textContent = 'x' + (stats.maxCrashOrange || '0');
+
+  // History
+  const rounds = stats.recentRounds || [];
+  document.getElementById('history-count').textContent = rounds.length + ' derniers';
+
+  // Badges
+  const strip = document.getElementById('badges-strip');
+  strip.innerHTML = rounds.slice(0, 40).map(r => {
+    const isB = r.winningCar === 'blue';
+    const val = (isB ? r.crashBlue : r.crashOrange).toFixed(2);
+    return `<span class="round-badge ${isB ? 'badge-b' : 'badge-o'}">${val}x</span>`;
+  }).join('');
+
+  // Table
+  const tbody = document.getElementById('history-tbody');
+  if (rounds.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-m);font-size:13px">Chargement des rounds...</td></tr>';
+  } else {
+    tbody.innerHTML = rounds.map((r, i) => {
+      const time = r.createdAt ? new Date(r.createdAt).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '---';
+      const rid = (r.roundId || '').slice(-8);
+      const isB = r.winningCar === 'blue';
+      return `<tr>
+        <td style="color:var(--text-m)">${i+1}</td>
+        <td style="color:var(--text-d)">${rid}</td>
+        <td class="crash-b" style="text-align:center">${r.crashBlue.toFixed(2)}x</td>
+        <td class="crash-o" style="text-align:center">${r.crashOrange.toFixed(2)}x</td>
+        <td style="text-align:center"><span class="round-badge ${isB ? 'badge-b' : 'badge-o'}">${isB ? 'BLE' : 'ORA'}</span></td>
+        <td style="text-align:right;color:var(--text-m)">${time}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Pattern grid
+  const patternCard = document.getElementById('pattern-card');
+  if (rounds.length > 0) {
+    patternCard.hidden = false;
+    document.getElementById('pattern-grid').innerHTML = rounds.slice(0, 80).map(r => {
+      const isB = r.winningCar === 'blue';
+      const crash = isB ? r.crashBlue : r.crashOrange;
+      const opacity = 0.3 + Math.min(crash / 10, 0.7);
+      return `<div class="p-cell" style="background:rgba(${isB ? '68,136,255' : '255,136,68'},${opacity});border:1px solid rgba(${isB ? '68,136,255' : '255,136,68'},0.3)" title="BLE ${r.crashBlue.toFixed(2)}x / ORA ${r.crashOrange.toFixed(2)}x"></div>`;
+    }).join('');
+  }
+
+  // Donut chart
+  renderDonut(stats);
+
+  // Distribution
+  renderDistribution(stats);
+
+  // Streaks
+  renderStreaks(stats);
+
+  // Indicators
+  renderIndicators(stats);
+}
+
+// ==================== SVG DONUT ====================
+function renderDonut(stats) {
+  const blue = parseFloat(stats.blueWinRate || '0');
+  const orange = parseFloat(stats.orangeWinRate || '0');
+  const total = stats.totalRounds || 0;
+  const svg = document.getElementById('donut-chart');
+
+  document.getElementById('win-blue-pct').textContent = blue.toFixed(1) + '%';
+  document.getElementById('win-orange-pct').textContent = orange.toFixed(1) + '%';
+  document.getElementById('win-blue-count').textContent = (stats.blueWins || 0) + ' victoires';
+  document.getElementById('win-orange-count').textContent = (stats.orangeWins || 0) + ' victoires';
+
+  if (total === 0) {
+    svg.innerHTML = '<circle cx="50" cy="50" r="40" fill="none" stroke="#1a1a3a" stroke-width="12"/><text x="50" y="48" text-anchor="middle" fill="#5a5a7a" font-size="11" font-family="monospace">0%</text><text x="50" y="60" text-anchor="middle" fill="#4a4a6a" font-size="8">ROUNDS</text>';
+    return;
+  }
+
+  const blueAngle = (blue / (blue + orange)) * 360;
+  const r = 40, cx = 50, cy = 50;
+
+  function polarToXY(angle) {
+    const rad = (angle - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function arc(startA, endA) {
+    const s = polarToXY(endA), e = polarToXY(startA);
+    const large = (endA - startA) > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y}`;
+  }
+
+  svg.innerHTML = `
+    <path d="${arc(0, blueAngle)}" fill="none" stroke="#4488ff" stroke-width="12" stroke-linecap="butt"/>
+    <path d="${arc(blueAngle, 360)}" fill="none" stroke="#ff8844" stroke-width="12" stroke-linecap="butt"/>
+    <text x="50" y="44" text-anchor="middle" fill="#d0d0e0" font-size="16" font-weight="bold" font-family="monospace">${total}</text>
+    <text x="50" y="58" text-anchor="middle" fill="#5a5a7a" font-size="8" font-family="sans-serif">ROUNDS</text>
+  `;
+}
+
+// ==================== DISTRIBUTION ====================
+function renderDistribution(stats) {
+  const container = document.getElementById('dist-container');
+  const ranges = [
+    { key: 'under1_5', label: '< 1.50x' },
+    { key: 'x1_5_to_2', label: '1.50-2' },
+    { key: 'x2_to_3', label: '2.00-3' },
+    { key: 'x3_to_5', label: '3.00-5' },
+    { key: 'x5_to_10', label: '5.00-10' },
+    { key: 'over10', label: '> 10x' }
+  ];
+
+  function renderDist(data, color, label) {
+    const total = Object.values(data).reduce((a,b) => a+b, 0);
+    let html = `<div class="dist-section"><div class="dist-label" style="color:${color}">${label}</div>`;
+    for (const r of ranges) {
+      const count = data[r.key] || 0;
+      const pct = total > 0 ? (count / total * 100) : 0;
+      html += `<div class="dist-row"><span style="color:var(--text-m);font-family:var(--mono);font-size:10px">${r.label}</span><span class="dist-count" style="color:${color}">${count} <span style="color:var(--text-m)">(${pct.toFixed(0)}%)</span></span></div><div class="dist-bar-bg"><div class="dist-bar-fill" style="width:${Math.max(pct, 0.5)}%;background:${color}"></div></div>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
+  container.innerHTML = renderDist(stats.blueRanges || {}, '#4488ff', 'Bleue') +
+    '<div style="border-top:1px solid var(--border);margin:4px 0"></div>' +
+    renderDist(stats.orangeRanges || {}, '#ff8844', 'Orange');
+}
+
+// ==================== STREAKS ====================
+function renderStreaks(stats) {
+  const c = document.getElementById('streaks-container');
+  const streak = stats.currentStreak || 0;
+  const car = stats.streakCar || '---';
+  const carColor = car === 'blue' ? 'var(--blue)' : 'var(--orange)';
+
+  c.innerHTML = `
+    <div class="streak-row ${streak >= 3 ? 'hot' : ''}">
+      <span class="streak-label">Serie en cours</span>
+      <div class="streak-value">
+        <span style="color:${carColor}">${streak}</span>
+        <span class="streak-car" style="color:${carColor}">${car === 'blue' ? 'BLE' : car === 'orange' ? 'ORA' : '---'}</span>
+        ${streak >= 3 ? '<span class="hot-badge">HOT</span>' : ''}
+      </div>
+    </div>
+    <div class="streak-row">
+      <span class="streak-label">Max Bleue</span>
+      <div class="streak-value" style="color:var(--blue)">${stats.maxBlueStreak || 0}</div>
+    </div>
+    <div class="streak-row">
+      <span class="streak-label">Max Orange</span>
+      <div class="streak-value" style="color:var(--orange)">${stats.maxOrangeStreak || 0}</div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+    <div class="streak-row">
+      <span class="streak-label">Moy. Crash Bleue</span>
+      <div class="streak-value" style="color:var(--blue)">x${stats.avgCrashBlue || '0'}</div>
+    </div>
+    <div class="streak-row">
+      <span class="streak-label">Moy. Crash Orange</span>
+      <div class="streak-value" style="color:var(--orange)">x${stats.avgCrashOrange || '0'}</div>
+    </div>
+  `;
+}
+
+// ==================== INDICATORS ====================
+function renderIndicators(stats) {
+  const c = document.getElementById('indicators-container');
+  const streak = stats.currentStreak || 0;
+  const blueR = parseFloat(stats.blueWinRate || '0');
+  const orangeR = parseFloat(stats.orangeWinRate || '0');
+  const total = stats.totalRounds || 0;
+
+  c.innerHTML = `
+    <div class="indicator ${streak >= 3 ? 'alert' : ''}">
+      <div class="ind-label"><div class="ind-dot" style="background:${streak >= 3 ? 'var(--danger)' : 'var(--accent)'}"></div>Series ${streak >= 3 ? '<span class="hot-badge" style="margin-left:4px">ALERT</span>' : ''}</div>
+      <div class="ind-text">${streak >= 3 ? (stats.streakCar === 'blue' ? 'Bleue' : 'Orange') + ' en serie de ' + streak + ' !' : 'Aucune serie significative'}</div>
+    </div>
+    <div class="indicator ${Math.abs(blueR - orangeR) > 10 ? 'alert' : ''}">
+      <div class="ind-label"><div class="ind-dot" style="background:${Math.abs(blueR - orangeR) > 10 ? 'var(--danger)' : 'var(--accent)'}"></div>Equilibre</div>
+      <div class="ind-text">${Math.abs(blueR - orangeR) > 10 ? 'Desequilibre de ' + Math.abs(blueR - orangeR).toFixed(1) + '%' : 'Voitures equilibrees'}</div>
+    </div>
+    <div class="indicator ${total < 50 ? 'warning' : ''}">
+      <div class="ind-label"><div class="ind-dot" style="background:${total < 50 ? 'var(--warn)' : 'var(--accent)'}"></div>Donnees</div>
+      <div class="ind-text">${total} rounds analyses${total < 50 ? ' — collecte en cours' : ''}</div>
+    </div>
+  `;
+}
+
+// ==================== MOBILE TABS ====================
+function switchMobileTab(tab, btn) {
+  document.querySelectorAll('.mob-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-history').classList.toggle('hide-mobile', tab !== 'history');
+  document.getElementById('panel-analytics').classList.toggle('hide-mobile', tab !== 'analytics');
+}
+
+// Enter key to connect
+document.getElementById('token-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleConnect(); }
+});
+</script>
+</body>
+</html>
